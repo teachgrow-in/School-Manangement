@@ -3300,7 +3300,7 @@
 
   <!-- SIDEBAR BOTTOM BUTTONS -->
   <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0;">
-    <p style="text-align: center; font-size: 0.72rem; color: #adb5bd; margin: 0 0 8px 0;">App Version - 12.1</p>
+    <p style="text-align: center; font-size: 0.72rem; color: #adb5bd; margin: 0 0 8px 0;">App Version - 13.2</p>
     <div style="display: flex; gap: 10px;">
       <button class="btn-custom" style="flex: 1; background: #ffc107; color: #333;" onclick="openSwitchAccountModal()">
         <i class="bi bi-people-fill"></i> Switch
@@ -3677,7 +3677,7 @@
           <div class="summary-value" id="dashCollectionPercent">0%</div>
           <div class="summary-label">Collection %</div>
         </div>
-        <div class="summary-item" style="min-width: 150px; flex: 0 0 auto; background: linear-gradient(135deg, #c0392b 0%, #922b21 100%);">
+        <div class="summary-item" style="cursor:pointer; min-width: 150px; flex: 0 0 auto; background: linear-gradient(135deg, #c0392b 0%, #922b21 100%);" onclick="openExpenseReportFiltered('fixed')">
           <div class="summary-value" id="dashFixedExpense">₹0</div>
           <div class="summary-label">Fixed Expenses</div>
         </div>
@@ -3685,12 +3685,12 @@
              ontouchstart="handleExpenseTouchStart(event)" ontouchend="handleExpenseTouchEnd(event)">
           <div style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.7); font-size: 1.2rem; z-index: 2;" onclick="changeExpenseDate(-1); event.stopPropagation();" title="Previous Day">&#10094;</div>
           <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.7); font-size: 1.2rem; z-index: 2;" onclick="changeExpenseDate(1); event.stopPropagation();" title="Next Day">&#10095;</div>
-          <div style="position: relative; z-index: 1;">
+          <div onclick="openExpenseReportFiltered('today')" style="position: relative; z-index: 1;">
             <div class="summary-value" id="dashTodayExpense">₹0</div>
             <div class="summary-label" id="dashTodayExpenseLabel">Today Expense</div>
           </div>
         </div>
-        <div class="summary-item" style="min-width: 150px; flex: 0 0 auto; background: linear-gradient(135deg, #1a5276 0%, #154360 100%);">
+        <div class="summary-item" style="cursor:pointer; min-width: 150px; flex: 0 0 auto; background: linear-gradient(135deg, #1a5276 0%, #154360 100%);" onclick="openExpenseReportFiltered('monthly')">
           <div class="summary-value" id="dashMonthlyExpense">₹0</div>
           <div class="summary-label">Monthly Expense</div>
         </div>
@@ -3721,6 +3721,10 @@
           <div class="chart-title">Expense By Category</div>
           <div class="pie-container"> <canvas id="pieExpenseCategory"></canvas></div>
         </div>
+        <div class="chart-wrapper">
+          <div class="chart-title">Monthly Fee Breakdown</div>
+          <div class="pie-container"><canvas id="pieMonthlyFeeBreakdown"></canvas></div>
+        </div>        
       </div>
 
       <div class="graph-main-container">
@@ -4505,6 +4509,9 @@
             <button class="btn btn-primary" style="margin-bottom: 0; padding: 8px 15px; background: #28a745; border: none; border-radius: 8px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; justify-content: center;" onclick="openHwSubjectSetup()" title="Manage Subjects">
               <i class="bi bi-plus-lg"></i>
             </button>
+            <button class="btn" style="margin-bottom: 0; padding: 8px 15px; background: #667eea; border: none; border-radius: 8px; color: #fff; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; justify-content: center;" onclick="openHwSyllabusBulk()" title="Syllabus (All Subjects)">
+              <i class="bi bi-book-half"></i>
+            </button>
           </div>
           
           <h3 id="hwClassTitle" style="color: #28a745; margin-bottom: 15px;"></h3>
@@ -4513,6 +4520,21 @@
           <button class="btn btn-success" style="width: 100%; margin-top: 20px; padding: 15px; font-size: 1.1rem;" onclick="saveClassHomework()">
             <i class="bi bi-cloud-arrow-up-fill"></i> Save Homework To Database
           </button>
+        </div>
+      </div>
+            <!-- ===== BULK SYLLABUS MODAL (all subjects of a class) ===== -->
+      <div id="hwSyllabusBulkModal" class="overlay-container" style="display: none; z-index: 4000;">
+        <div class="custom-card" style="height: 90%; display: flex; flex-direction: column; width: 95%; max-width: 1400px; padding: 20px;">
+          <div class="modal-header" style="border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
+            <h5 style="margin: 0; font-size: 1.2rem; color: #667eea;"><i class="bi bi-book-half"></i> Syllabus <span id="hwSyllabusBulkClass"></span></h5>
+            <button class="close-btn" onclick="closeHwSyllabusBulk()" style="color: #dc3545;">&times;</button>
+          </div>
+
+          <div id="hwSyllabusBulkWrap" style="overflow: auto; flex: 1; text-align: left; -webkit-overflow-scrolling: touch;"></div>
+
+          <div class="modal-footer" style="margin-top: 20px;">
+            <button class="btn btn-success" style="width: 100%; font-size: 1.1rem; padding: 12px;" onclick="saveHwSyllabusBulk()"><i class="bi bi-save-fill"></i> Save Syllabus</button>
+          </div>
         </div>
       </div>
       <div id="hwSubjectSetupModal" class="overlay-container" style="display: none; z-index: 4000;">
@@ -4553,22 +4575,6 @@
               <input type="text" id="hwEndTime" class="text-input" placeholder="End Time (HH:MM AM/PM)" style="flex:1; padding:8px;" maxlength="12">
             </div>
             <button class="btn btn-success" style="width:100%; padding:10px; font-size:0.95rem;" onclick="saveHwTimetable()"><i class="bi bi-clock-fill"></i> Save Timetable</button>
-          </div>
-
-          <!-- === ADD SYLLABUS REPORT SECTION (shows only when a row is being edited) === -->
-          <div id="hwSyllabusSection" style="display:none; margin-top:20px; border-top:2px dashed #dee2e6; padding-top:15px;">
-          <h6 style="color:#667eea; margin-bottom:4px; font-size:1rem;"><i class="bi bi-journal-bookmark-fill"></i> <span id="hwSyllabusRowLabel"></span> Syllabus Report</h6>
-            <div style="display:flex; gap:10px; margin-bottom:12px;">
-              <input type="number" id="hwTotalChapters" class="text-input" placeholder="Total Chapters (Col E)" style="flex:1; padding:8px;" min="1">
-              <input type="number" id="hwSyllabusThreshold" class="text-input" placeholder="Threshold %" style="flex:1; padding:8px;" min="1" max="100">
-            </div>
-          <div id="hwSyllabusTypesSection" style="display:none;">
-            <div id="hwSyllabusTypeInputs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
-          </div>
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-              <button class="btn btn-secondary" style="flex:1; padding:8px; font-size:0.85rem;" onclick="loadHwSyllabusTypes()"><i class="bi bi-list-check"></i> Load Types</button>
-              <button class="btn" style="flex:1; padding:8px; font-size:0.85rem; background:#667eea; color:white; border:none; border-radius:8px;" onclick="saveHwSyllabus()"><i class="bi bi-save-fill"></i> Save Syllabus</button>
-            </div>
           </div>
 
           <div style="margin-top: 20px; display: flex; gap: 10px;">
@@ -4637,7 +4643,7 @@
             </div>
             <div style="display: flex; gap: 10px;">
               <div class="form-group" style="flex:1;"><label>Expense Type</label><input type="text" id="newExpType" class="text-input" placeholder="Eg: Salary"></div>
-              <div class="form-group" style="flex:1;"><label>Payment Type</label><input type="text" id="newExpPayType" class="text-input" placeholder="Eg: Monthly"></div>
+              <div class="form-group" style="flex:1;"><label>Expense ID</label><input type="text" id="newExpPayType" class="text-input" placeholder="Eg: Login ID"></div>
             </div>
             <div style="display: flex; gap: 10px;">
               <div class="form-group" style="flex:1;"><label>Fixed Expense</label><input type="text" id="newExpFixed" class="text-input" placeholder="10000"></div>
@@ -4826,7 +4832,10 @@
   <div id="routinePopupOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:4000; align-items:center; justify-content:center; padding:10px;">
     <div style="background:#fff; border-radius:16px; width:100%; max-width:1300px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
       <div style="padding:16px 20px; background:linear-gradient(135deg,#8e44ad,#c0392b); border-radius:16px 16px 0 0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-        <span id="routinePopupTitle" style="color:#fff; font-weight:bold; font-size:1rem;"></span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span id="routinePopupTitle" style="color:#fff; font-weight:bold; font-size:1rem;"></span>
+          <span title="Print Routine" onclick="printLoadedReport(document.getElementById('routinePopupBody'))" style="cursor:pointer; color:#fff; font-size:1.1rem; background:rgba(255,255,255,0.2); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="bi bi-printer-fill"></i></span>
+        </span>
         <button onclick="closeRoutinePopup()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:50%; width:30px; height:30px; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
       </div>
       <div id="routinePopupBody" style="overflow:auto; padding:16px; flex:1;"></div>
@@ -4837,7 +4846,10 @@
     <div style="background:#fff; border-radius:16px; width:100%; max-width:1300px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
       <!-- Header -->
       <div style="padding:14px 20px; background:linear-gradient(135deg,#8e44ad,#3498db); border-radius:16px 16px 0 0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-        <span style="color:#fff; font-weight:bold; font-size:1rem;"><i class="bi bi-calendar2-week"></i> Study Planner — Full Year</span>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span style="color:#fff; font-weight:bold; font-size:1rem;"><i class="bi bi-calendar2-week"></i> Study Planner - Yearly</span>
+          <span title="Print Study Planner" onclick="printLoadedReport(document.getElementById('studyPlannerBody'))" style="cursor:pointer; color:#fff; font-size:1.1rem; background:rgba(255,255,255,0.2); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="bi bi-printer-fill"></i></span>
+        </span>
         <button onclick="document.getElementById('studyPlannerOverlay').style.display='none'" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:50%; width:30px; height:30px; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
       </div>
       <!-- Body -->
@@ -4930,7 +4942,7 @@
         </div>
         <div class="form-group">
           <label>Pay Amount</label>
-          <input type="number" id="collectFeeAmount" class="text-input" oninput="calculateCollectFeeRemaining()">
+          <input type="number" id="collectFeeAmount" class="text-input" oninput="calculateCollectFeeRemaining()" placeholder="Enter Amount To Paid">
         </div>
         <div class="form-group">
           <label>Discount Amount</label>
@@ -5187,7 +5199,7 @@
              String(d.getMonth() + 1).padStart(2, '0') + '/' + 
              d.getFullYear();
     }
-        // ==================== GITHUB API CONNECTION ====================
+    // ==================== GITHUB API CONNECTION ====================
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzaWB_PcB8NV2fiQoBz9fS90qL9zIM5OxEvtgpwf-LjiRrvkWcpI_zWPnzXnz5njRqBFA/exec"; 
       const google = {
         script: {
@@ -5230,6 +5242,7 @@
           }
         }
       };
+
     // ==================== SIDEBAR TOGGLE ====================
     function toggleSidebar() {
       const sidebar = document.getElementById('rightSidebar');
@@ -5499,11 +5512,11 @@
     }
     // ==================== TAB 1: DASHBOARD JAVASCRIPT ====================
     let dashboardChartInstance = null;
-    let pie1, pie2, pie3, pie4, pie5, pie6, barClassDues, lineYearTrend, barVillage;
+    let pie1, pie2, pie3, pie4, pie5, pie6, pie7, barClassDues, lineYearTrend, barVillage;
     let globalDailyExpenses = {};
     let currentExpenseDate = new Date();
     let expenseTouchStartX = 0;
-    
+    let pendingExpenseDashboardFilter = null;
     function loadDashboardData() {
       AppCache.clearClasses();
       sessionStorage.removeItem('appCache_printClasses');
@@ -5521,6 +5534,7 @@
             // Update Cards
             document.getElementById('dashTotalStudents').innerText = data.totalStudents;
             document.getElementById('dashTotalRevenue').innerText = '₹' + data.totalRevenue.toLocaleString('en-IN');
+            window._globalTotalRevenue = data.totalRevenue || 0; // Expense report % ke liye globally store
             document.getElementById('dashMonthlyCollection').innerText = '₹' + data.monthlyCollection.toLocaleString('en-IN');
             globalDailyCollections = data.dailyCollections || {};
             currentCollectionDate = new Date(); // Reset to today
@@ -5630,6 +5644,40 @@
         // 'gender' key yahan filter function ko trigger karne ke liye di gayi hai
         options: createPieOptions('gender') 
       });
+            // Monthly Fee Breakdown (Column S) — Pie Chart
+      if (pie7) pie7.destroy();
+      const mfb = pieData.monthlyFeeBreakdown || {};
+      const mfbLabels = ['School Fee','Vehicle Fee','Electricity Fee','Lab & Smart Class Fee','Other Fee'].filter(k => mfb[k] > 0);
+      const mfbValues = mfbLabels.map(k => Math.round(mfb[k]));
+      const mfbDiscount = Math.round(mfb['Discount'] || 0);
+      if (mfbLabels.length > 0) {
+        pie7 = new Chart(document.getElementById('pieMonthlyFeeBreakdown'), {
+          type: 'doughnut',
+          data: {
+            labels: mfbLabels,
+            datasets: [{ data: mfbValues, backgroundColor: ['#667eea','#e74c3c','#f1c40f','#2ecc71','#e67e22'] }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const total = mfbValues.reduce((a,b) => a+b, 0);
+                    const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                    return ' ' + ctx.label + ': ₹' + ctx.raw.toLocaleString('en-IN') + ' (' + pct + '%)' + (mfbDiscount > 0 ? ' | Discount: ₹' + mfbDiscount.toLocaleString('en-IN') : '');
+                  }
+                }
+              }
+            },
+            onClick: function(event, elements) {
+              if (elements.length > 0) applyDashboardFilter('monthlyFeeBreakdown', this.data.labels[elements[0].index]);
+            }
+          }
+        });
+      }
     }
     
     function renderExpenseCategoryPie(categoryData) {
@@ -6287,6 +6335,10 @@
              s.monthsData[currentMonthText].feeTypesPaid &&
              s.monthsData[currentMonthText].feeTypesPaid.includes(value)
           );
+       } else if (type === 'monthlyFeeBreakdown') {
+          // Sirf whi students jo us fee type ka charge pay kar rahe hain (Column S me unka ye fee > 0 hai)
+          filteredDashboardStudents = dashboardStudentsList.filter(s => s.hasFeeInS);
+          // (Future: agar breakdown per-student stored hoga tab specific fee type ke basis par filter hoga)
        } else if (type === 'gender') { 
           filteredDashboardStudents = dashboardStudentsList.filter(s => String(s.gender).trim().toUpperCase() === String(value).trim().toUpperCase());
        } else if (type === 'classTrend') { 
@@ -7067,7 +7119,7 @@
           const s = bdStudents[step.index];
           const p = s.dob.split('/');
           const age = today.getFullYear() - parseInt(p[2]);
-          showBirthdayInLoop(s.name, age, s.phone || s.guardianPhone || '');
+          showBirthdayInLoop(s.name, age, s.phone || s.guardianPhone || '', s.uid);
         } else if (step.type === 'notice') {
           const n = notices[step.index];
           showNoticeInLoop(n);
@@ -7121,7 +7173,7 @@
       }, 400);
     }
 
-    function showBirthdayInLoop(name, age, phone) {
+    function showBirthdayInLoop(name, age, phone, uid) {
       const defaultContent = document.getElementById('defaultHeaderContent');
       const bdContent      = document.getElementById('birthdayHeaderContent');
       const noticeContent  = document.getElementById('noticeHeaderContent');
@@ -7155,10 +7207,12 @@
         // Header click se greeting card khule (icon chhod kar)
         bdContent.onclick = function(e) {
           if (!e.target.classList.contains('bi-cake2') && e.target.id !== 'bdCakeIcon') {
-            openBdGreetingModal(name, age, phone, 
-              (typeof dashboardStudentsList !== 'undefined' 
-                ? (dashboardStudentsList.find(s => s.name && s.name.toUpperCase() === name.toUpperCase()) || {}).photoUrl 
-                : null) || 'https://placehold.co/100x120?text=🎂'
+            // UID se photo dhundho — same name wale students me galti nahi hogi
+            const bdStudent = (typeof dashboardStudentsList !== 'undefined' && uid)
+              ? (dashboardStudentsList.find(s => String(s.uid) === String(uid)) || {})
+              : {};
+            openBdGreetingModal(name, age, phone,
+              bdStudent.photoUrl || 'https://placehold.co/100x120?text=🎂'
             );
           }
         };
@@ -7245,7 +7299,7 @@
           const s = window._headerBdStudents[step.index];
           const p = s.dob.split('/');
           const age = today.getFullYear() - parseInt(p[2]);
-          showBirthdayInLoop(s.name, age, s.phone || s.guardianPhone || '');
+          showBirthdayInLoop(s.name, age, s.phone || s.guardianPhone || '', s.uid);
         } else if (step.type === 'notice') {
           showNoticeInLoop(window._headerNotices[step.index]);
         }
@@ -8126,7 +8180,7 @@
         formHtml += `
           <div class="form-group" style="margin-bottom: 10px;">
             <label style="color: #555; font-size: 0.85rem;">${f.label}</label>
-            <input type="text" id="${f.id}" class="text-input" style="padding: 8px; border: 1px solid #ced4da;" value="${f.val}">
+            <input type="text" id="${f.id}" class="text-input" style="padding: 8px; border: 1px solid #ced4da; text-transform: uppercase;" value="${f.val}" oninput="this.value = this.value.toUpperCase();">
           </div>
         `;
       });
@@ -8262,30 +8316,50 @@
     }
     
     function confirmDeleteStudent(uid, source) {
-      if (!confirm('\u26A0\uFE0F Are You Sure To DELETE UID ' + uid + '?\n\nStudent Data Will Be Deleted.\nThis Action Can Not Undo!')) return;
+      const warningMessage = '\u26A0\uFE0F Are You Sure To Move UID ' + uid + ' To Dropbox?\n\uD83D\uDD12 Safety Check: Enter Password To Delete This Student:';
+      
+      const password = prompt(warningMessage);
+      if (!password) return;
+
       showSpinner(true);
       google.script.run
-        .withSuccessHandler(function (res) {
-          showSpinner(false);
-          if (res.success) {
-            playSound('success');
-            showMessage(res.message, 'success');
-            if (source === 'dashboard') {
-              fetchRecentStudents();
-            } else {
-              selectGenerateClass(selectedClass);
-            }
-          } else {
+        .withSuccessHandler(function (pwRes) {
+          if (!pwRes.success) {
+            showSpinner(false);
             playSound('error');
-            showMessage(res.message || 'Delete Failed', 'error');
+            showMessage(pwRes.message || 'Incorrect Password!', 'error');
+            return;
           }
+          // Password Sahi Hai -> Ab Actual Delete Karo
+          google.script.run
+            .withSuccessHandler(function (res) {
+              showSpinner(false);
+              if (res.success) {
+                playSound('success');
+                showMessage(res.message, 'success');
+                if (source === 'dashboard') {
+                  fetchRecentStudents();
+                } else {
+                  selectGenerateClass(selectedClass);
+                }
+              } else {
+                playSound('error');
+                showMessage(res.message || 'Delete Failed', 'error');
+              }
+            })
+            .withFailureHandler(function (err) {
+              showSpinner(false);
+              playSound('error');
+              showMessage('Error: ' + err, 'error');
+            })
+            .deleteStudentEverywhere(uid);
         })
         .withFailureHandler(function (err) {
           showSpinner(false);
           playSound('error');
           showMessage('Error: ' + err, 'error');
         })
-        .deleteStudentEverywhere(uid);
+        .verifyTeacherPassword(password);
     }
 
     // Image File Ko Backend Par Bhejne Ke Liye Function
@@ -8613,8 +8687,6 @@
       google.script.run
         .withSuccessHandler(res => {
           const data = JSON.parse(res);
-          // NAYA CODE: Pehle yeh check nahi hota tha, isliye limit reach hone par bhi
-          // "Restored Successfully" dikh jata tha. Ab success flag zaroor check hoga.
           if (!data.success) {
             showSpinner(false);
             playSound('error');
@@ -8622,13 +8694,23 @@
             return;
           }
           showMessage('Student Restored! Auto Syncing...', 'info');
-          // Restore ke baad single student auto sync
+          // Restore ke baad single student auto sync (New Admission Jaisa - Uski Class Ke Last Student Ke Baad)
           google.script.run
             .withSuccessHandler(function(syncRes) {
-              showSpinner(false);
-              playSound('success');
-              showMessage('Student Restored & Synced Successfully!', 'success');
-              fetchRecentStudents();
+              google.script.run
+                .withSuccessHandler(function(histRes) {
+                  showSpinner(false);
+                  playSound('success');
+                  showMessage('Student Restored, Synced & History Recovered Successfully!', 'success');
+                  fetchRecentStudents();
+                })
+                .withFailureHandler(function(histErr) {
+                  showSpinner(false);
+                  playSound('success');
+                  showMessage('Restored & Synced! But History Recovery Failed: ' + histErr, 'error');
+                  fetchRecentStudents();
+                })
+                .restoreHistoricalDataBackend(uid, data.duesHistory || '', data.attHistory || '');
             })
             .withFailureHandler(function(syncErr) {
               showSpinner(false);
@@ -9414,36 +9496,25 @@
             })
             .getAllTeacherReport();
         } else if (actualType === 'datewise') {
-          showSpinner(true);
-          google.script.run
-            .withSuccessHandler(dates => {
-              let html = `
-                <h3 style="color: ${color}; margin-bottom: 15px;"><i class="bi bi-calendar-event"></i> Datewise Teacher Report</h3>
-                <div style="max-width: 600px;">
-                  <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                      <label style="display: block; margin-bottom: 8px; font-weight: 600;">From Date:</label>
-                      <select id="teacherDateFrom" class="text-input">
-                        <option value="">From Date</option>
-                        ${dates.map(date => `<option value="${date}">${date}</option>`).join('')}
-                      </select>
-                    </div>
-                    <div style="flex: 1;">
-                      <label style="display: block; margin-bottom: 8px; font-weight: 600;">To Date:</label>
-                      <select id="teacherDateTo" class="text-input">
-                        <option value="">To Date</option>
-                        ${dates.map(date => `<option value="${date}">${date}</option>`).join('')}
-                      </select>
-                    </div>
-                  </div>
-                  <button class="btn btn-primary" onclick="generateTeacherDatewiseReport()">Generate Report</button>
+          // NAYA: Ab dropdown ki jagah seedha Calendar (kisi bhi date ka report, current + purane session dono)
+          let html = `
+            <h3 style="color: ${color}; margin-bottom: 15px;"><i class="bi bi-calendar-event"></i> Datewise Teacher Report</h3>
+            <div style="max-width: 600px;">
+              <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                  <label style="display: block; margin-bottom: 8px; font-weight: 600;">From Date:</label>
+                  <input type="date" id="teacherDateFrom" class="text-input">
                 </div>
-                <div id="teacherDateResult"></div>
-              `;
-              document.getElementById('teacherAttendanceReportSection').innerHTML = html;
-              showSpinner(false);
-            })
-            .getTeacherAvailableDates();
+                <div style="flex: 1;">
+                  <label style="display: block; margin-bottom: 8px; font-weight: 600;">To Date:</label>
+                  <input type="date" id="teacherDateTo" class="text-input">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="generateTeacherDatewiseReport()">Generate Report</button>
+            </div>
+            <div id="teacherDateResult"></div>
+          `;
+          document.getElementById('teacherAttendanceReportSection').innerHTML = html;
         } else if (actualType === 'rankwise') {
           section.innerHTML = `
             <h3 style="color: ${color}; margin-bottom: 15px;"><i class="bi bi-trophy"></i> Rankwise Teacher Report</h3>
@@ -9571,21 +9642,14 @@
             section.innerHTML = html;
         });
       } else if (actualType === 'datewise') {
-      showSpinner(true);
-      let dateFunc, dateArg;
       if (isFee) {
-        dateFunc = 'getFeeAvailableDates';
-        dateArg = undefined;
-      } else {
-        dateFunc = isHomework ? 'getGenericDates' : 'getAvailableDates';
-        dateArg = isHomework ? 'Homework' : undefined;
-      }
+      showSpinner(true);
       google.script.run
       .withSuccessHandler(dates => {
        loadClassesNoSpinner(classes => {
             if (!classes.includes('All')) classes.unshift('All');
               let html = ` <h3 style="color: ${color}; margin-bottom: 15px;"><i class="bi bi-calendar-event"></i> Datewise ${dataType} Report</h3>`;
-              // NAYA: Side-by-Side Date Range Dropdowns
+              // Fee "By Deposit Date" ke liye dropdown wahi purana rahega
               let dateSelectHTML = `
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                   <div style="flex: 1;">
@@ -9605,7 +9669,6 @@
                 </div>
               `;
 
-              if (isFee) {
                   html += `
                   <div style="display: flex; flex-wrap: wrap; gap: 20px;">
                     <div id="feeDepositSection" style="flex: 1; min-width: 200px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6;">
@@ -9642,20 +9705,6 @@
                     </div>
                   </div>
                   `;
-              } else {
-                  html += `
-                  <div style="max-width: 600px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select Class:</label>
-                    <select id="${type}DateClass" class="text-input" style="margin-bottom: 15px;">
-                      <option value="">Select Class</option>
-                      ${classes.map(cls => `<option value="${cls}">${cls}</option>`).join('')}
-                    </select>
-                    ${dateSelectHTML}
-                    <button class="btn btn-primary" onclick="generateDateReport('${type}')">Generate Report</button>
-                  </div>
-                  <div id="${type}DateResult"></div>
-                  `;
-              }
               section.innerHTML = html;
               showSpinner(false);
           });
@@ -9663,7 +9712,37 @@
         .withFailureHandler(err => {
           showSpinner(false);
           showMessage('Error: ' + err, 'error');
-        })[dateFunc](dateArg);
+        })
+        .getFeeAvailableDates();
+      } else {
+        // ===== NAYA: ATTENDANCE / HOMEWORK — Kisi Bhi Date Ka Calendar Picker (Fee Payment Date Jaisa) =====
+        loadClassesNoSpinner(classes => {
+            if (!classes.includes('All')) classes.unshift('All');
+            let html = ` <h3 style="color: ${color}; margin-bottom: 15px;"><i class="bi bi-calendar-event"></i> Datewise ${dataType} Report</h3>`;
+            html += `
+              <div style="max-width: 600px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select Class:</label>
+                <select id="${type}DateClass" class="text-input" style="margin-bottom: 15px;">
+                  <option value="">Select Class</option>
+                  ${classes.map(cls => `<option value="${cls}">${cls}</option>`).join('')}
+                </select>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                  <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">From Date:</label>
+                    <input type="date" id="${type}DateFrom" class="text-input">
+                  </div>
+                  <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">To Date:</label>
+                    <input type="date" id="${type}DateTo" class="text-input">
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateDateReport('${type}')">Generate Report</button>
+              </div>
+              <div id="${type}DateResult"></div>
+              `;
+            section.innerHTML = html;
+        });
+      }
       } else if (actualType === 'continuous') {
         loadClassesWithCache(classes => {
             if (!classes.includes('All')) classes.unshift('All');
@@ -9939,27 +10018,38 @@
       const dataType = isFee ? 'Fee' : (isHomework ? 'Homework' : 'Attendance');
 
       showSpinner(true);
-      
+
+      if (isFee) {
+        // ===== FEE (Deposit Date) — Purana Flow, Bina Change Ke =====
+        if (fromDate === toDate) {
+          google.script.run
+            .withSuccessHandler(result => { showSpinner(false); if(result.success) displayDateReport(result, type); else showMessage(result.message, 'error'); })
+            .withFailureHandler(err => { showSpinner(false); showMessage('Error:' + err, 'error'); })
+            .getFeeDatewiseReport(className, fromDate);
+        } else {
+          google.script.run
+            .withSuccessHandler(result => { showSpinner(false); if(result.success) displayFeeRangeReport(result, type, 'Deposit'); else showMessage(result.message, 'error'); })
+            .withFailureHandler(err => { showSpinner(false); showMessage('Error:' + err, 'error'); })
+            .getFeeDepositDateRangeReport(dataType, className, fromDate, toDate);
+        }
+        return;
+      }
+
+      // ===== ATTENDANCE / HOMEWORK — Ab Kisi Bhi Calendar Date Ka Report (Current + Purane Session Archive) =====
       if (fromDate === toDate) {
-        // Single Date Logic
-        let funcName = isFee ? 'getFeeDatewiseReport' : (isHomework ? 'getHomeworkDateWiseReport' : 'getDateWiseReport');
+        // Single Date -> Present/Late/Absent (ya Complete/Partial/Incomplete) wala summary view, WhatsApp button ke sath
+        let funcName = isHomework ? 'getHomeworkCalendarSingleReport' : 'getAttendanceCalendarSingleReport';
         google.script.run
           .withSuccessHandler(result => { showSpinner(false); if(result.success) displayDateReport(result, type); else showMessage(result.message, 'error'); })
           .withFailureHandler(err => { showSpinner(false); showMessage('Error:' + err, 'error'); })
           [funcName](className, fromDate);
       } else {
-        // Date Range Logic
-        let funcName = isFee ? 'getFeeDepositDateRangeReport' : 'getGenericDateRangeReport';
+        // Date Range -> Table view (ek column har date ke liye)
+        let funcName = isHomework ? 'getHomeworkCalendarRangeReport' : 'getAttendanceCalendarRangeReport';
         google.script.run
-          .withSuccessHandler(result => { 
-            showSpinner(false); 
-            if(result.success) {
-                if (isFee) displayFeeRangeReport(result, type, 'Deposit');
-                else displayGenericRangeReport(result, type);
-            } else showMessage(result.message, 'error'); 
-          })
+          .withSuccessHandler(result => { showSpinner(false); if(result.success) displayGenericRangeReport(result, type); else showMessage(result.message, 'error'); })
           .withFailureHandler(err => { showSpinner(false); showMessage('Error:' + err, 'error'); })
-          [funcName](dataType, className, fromDate, toDate);
+          [funcName](className, fromDate, toDate);
       }
     }
     // ==================== RENDERING FUNCTIONS FOR RANGE TABLES ====================
@@ -11259,6 +11349,7 @@
     let currentFeeReportClass = null;
     let currentMonthName = '';
     let isSectionVisible = false;
+    let currentFeeFilter = 'none';
     function showFeeReport() {
       // Ye line add karni hai taaki Fee report open hone par Inventory hide ho jaye
       document.getElementById('inventoryReportMainSection').style.display = 'none';
@@ -11326,6 +11417,7 @@
       for (const key in loadedFees) {
         delete loadedFees[key];
       }
+      currentFeeFilter = 'none';
       showSpinner(true);
       google.script.run
         .withSuccessHandler((students) => {
@@ -11346,61 +11438,77 @@
       const userRole = localStorage.getItem("userData") ? JSON.parse(localStorage.getItem("userData")).role : '';
       
       let html = `
-        <h3 style="text-align:center; margin:10px 0;">MONTH: ${currentMonthName} | CLASS: ${currentFeeReportClass}</h3>
-        <div style="display:flex; justify-content:center; margin-bottom:15px; color:#555;">
-          <h4 style="margin:0; font-size:1rem;">STUDENTS: ${feeReportStudents.length} |</h4>
-          <h4 id="totalFeeDisplay" style="margin:0; font-size:1rem;">&nbsp;TOTAL FEE: ₹0</h4>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0;flex-wrap:wrap;">
+          <h4 style="margin:0;">MON: ${currentMonthName} | STD: ${currentFeeReportClass}</h3>
+          <span id="feeFilterIconBtn" onclick="openFeeFilterPopup()" title="Filter / Sort Students" style="cursor:pointer;font-size:1.2rem;display:inline-flex;align-items:center;color:${currentFeeFilter !== 'none' ? '#dc3545' : '#667eea'};"><i class="bi bi-funnel${currentFeeFilter !== 'none' ? '-fill' : ''}"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;color:#555;flex-wrap:wrap;">
+          <h4 style="margin:0;font-size:1rem;">STU: <span id="feeVisibleCount">${feeReportStudents.length}</span> |</h4>
+          <h4 id="totalFeeDisplay" style="margin:0;font-size:1rem;">&nbsp;FEE: ₹0</h4>
+        </div>
+        <div id="feeActiveFilterBadge" style="display:${currentFeeFilter !== 'none' ? 'flex' : 'none'};justify-content:center;margin-bottom:10px;">
+          <span style="background:#667eea;color:white;font-size:0.75rem;padding:3px 14px;border-radius:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+            <span class="filter-label">${currentFeeFilter === 'fee_wise' ? 'Fee Wise' : 'Dues Wise'}</span>
+            <span onclick="clearFeeFilter()" style="cursor:pointer;font-size:1rem;" title="Filter Hatao">✕</span>
+          </span>
         </div>
         
         <div class="table-responsive" style="max-height: 65vh; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
-          <table class="report-table" style="min-width: 800px; margin-top: 0;">
+          <table class="report-table" id="feeReportTable" style="min-width: 800px; margin-top: 0;">
             <thead style="position: sticky; top: 0; z-index: 10;">
               <tr>
                 <th>Sr.No</th>
                 <th style="text-align:center;">Profile</th>
-                <th>UID</th>
-                <th>Student Name & Info</th>
-                <th>Fee Details</th>
+                <th>Name & Class</th>
+                <th>Father's Name</th>
+                <th>Monthly Fee</th>
+                <th>Fee Dues</th>
                 <th>Phone Number</th>
-                <th>Actions</th>
+                <th>Deposit Date</th>
+                <th class="no-print">Actions</th>
               </tr>
             </thead>
             <tbody>
       `;
 
       feeReportStudents.forEach((student, idx) => {
-        // Sirf PRO (Admin) login me edit and history icon dikhega
         const canSeeNote = (userRole === 'PRO' || userRole === 'TEACHER');
         const editIcon = (userRole === 'PRO' ? `
-          <span title="Edit Fee" style="cursor:pointer; font-size:1.2rem; color: #007bff; margin-left:10px;" onclick="openFeeEditModal('${student.uid}', '${student.name}')"><i class="bi bi-pencil"></i></span>
-        ` : '') + ((userRole === 'PRO' || userRole === 'TEACHER') ? `
-          <span title="View Ledger" style="cursor:pointer; font-size:1.2rem; color: #007bff; margin-left:10px;" onclick="printFeeLedger('${student.uid}')"><i class="bi bi-clock"></i></span>
+          <span title="Edit Fee" style="cursor:pointer; font-size:0.95rem; color: #007bff; margin-left:10px;" onclick="openFeeEditModal('${student.uid}', '${student.name}')"><i class="bi bi-pencil"></i></span>
         ` : '');
+        const ledgerIcon = (userRole === 'PRO' || userRole === 'TEACHER') ? `
+          <span title="View Ledger" style="cursor:pointer; color: #007bff; font-size:1.3rem;" onclick="printFeeLedger('${student.uid}')"><i class="bi bi-clock"></i></span>
+        ` : '';
         html += `
-          <tr style="vertical-align: middle;">
+          <tr data-uid="${student.uid}" style="vertical-align: middle;">
             <td>${idx + 1}</td>
             ${getProfilePicHtml(student.uid)}
-            <td>${student.uid}</td>
             <td>
-              <strong>${student.name} (${student.class})</strong><br>
-              <small style="color:#666;">FATHER: ${student.fatherName}</small>
+              <span style="font-size:0.85rem; font-weight:600; color:#2d3748;">${student.name}</span>
+              <small style="color:#888;"> • ${student.class}</small>
+            </td>
+            <td style="font-size:0.85rem; color:#555;">${student.fatherName}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:6px;">
+                ${userRole === 'PRO' ? `<span onclick="openFeeInfoDialog('${student.uid}', '${student.name}')" title="Monthly Fee Info & Note" style="cursor:pointer; color:#667eea; font-size:0.8rem;"><i class="bi bi-info-circle-fill"></i></span>` : ''}
+                <span style="font-size:0.85rem; color:#444; font-weight:600;" id="monthfee-label-${student.uid}"><span style="color:#28a745;" id="monthfee-amt-${student.uid}">...</span>/Mo.</span>
+              </div>
             </td>
             <td>
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
-                ${userRole === 'PRO' ? `<span onclick="openFeeInfoDialog('${student.uid}', '${student.name}')" title="Monthly Fee Info & Note" style="cursor:pointer; color:#667eea; font-size:0.8rem;"><i class="bi bi-info-circle-fill"></i></span>` : ''}
-                <span style="font-size:0.8rem; color:#444; font-weight:600;" id="monthfee-label-${student.uid}">${currentMonthName} <span style="color:#28a745;" id="monthfee-amt-${student.uid}">...</span>/Mo.</span>
-              </div>
               <div style="display:flex; align-items:center;">
                 <div id="fee-${student.uid}" style="font-size: 1.2rem; font-weight: 700; color: #28a745;">Loading...</div>
                 ${editIcon}
+                <span id="feeStatusIcons-${student.uid}" style="display:inline-flex; align-items:center;"></span>
               </div>
             </td>
             <td style="font-weight: 600; color: #4a5568;">${getStudentPhone(student.uid, student)}</td>
-            <td>
+            <td id="depositDate-${student.uid}" style="font-weight: 600; color: #555;">Loading...</td>
+            <td class="no-print">
               <div class="action-icons" style="display: flex; gap: 15px;">
                 <span title="Call Parent" style="cursor:pointer; color: #28a745; font-size:1.3rem;" onclick="callParentWithNote('${student.uid}', '${student.name}', '${student.phone}')"><i class="bi bi-telephone"></i></span>
                 <a href="javascript:void(0)" onclick="sendWhatsAppMessage('${student.uid}', '${student.name}', '${student.fatherName}', '${student.phone}')" title="Send WhatsApp Message" style="text-decoration:none; color: #25D366; font-size: 1.3rem;"><i class="bi bi-whatsapp"></i></a>
                 <span title="View/Add Note" style="cursor:pointer; color: #f59e0b;; font-size:1.3rem;" onclick="openFeeNoteDialog('${student.uid}', '${student.name}')"><i class="bi bi-journal-text"></i></span>
+                ${ledgerIcon}
               </div>
             </td>
           </tr>
@@ -11410,6 +11518,147 @@
       
       html += `</tbody></table></div>`;
       section.innerHTML = html;
+    }
+        // ==================== FEE FILTER SYSTEM ====================
+    function openFeeFilterPopup() {
+      let overlay = document.getElementById('feeFilterOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'feeFilterOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:999;';
+        overlay.onclick = closeFeeFilterPopup;
+        document.body.appendChild(overlay);
+      }
+
+      let modal = document.getElementById('feeFilterModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'feeFilterModal';
+        modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.25);z-index:1000;width:320px;font-family:Poppins,sans-serif;';
+        document.body.appendChild(modal);
+      }
+
+      overlay.style.display = 'block';
+      modal.style.display = 'block';
+
+      modal.innerHTML = `
+        <h3 style="margin:0 0 15px 0;color:#333;text-align:center;font-size:1.1rem;">Filter Setup</h3>
+        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">Filter Type Select Karo:</label>
+        <div style="margin-bottom:20px;padding:12px;background:#f8f9fa;border-radius:8px;display:flex;flex-direction:column;gap:12px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="radio" name="feeFilterType" value="none" ${currentFeeFilter === 'none' ? 'checked' : ''} style="margin-top:3px;accent-color:#667eea;width:16px;height:16px;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">No Filter</div>
+              <div style="color:#888;font-size:11px;">Show All Students (default)</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="radio" name="feeFilterType" value="fee_wise" ${currentFeeFilter === 'fee_wise' ? 'checked' : ''} style="margin-top:3px;accent-color:#667eea;width:16px;height:16px;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">Fee Wise</div>
+              <div style="color:#888;font-size:11px;">Show Students With Monthly Fee</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="radio" name="feeFilterType" value="dues_wise" ${currentFeeFilter === 'dues_wise' ? 'checked' : ''} style="margin-top:3px;accent-color:#667eea;width:16px;height:16px;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">Dues Wise</div>
+              <div style="color:#888;font-size:11px;">Show Fee In Ascending Order</div>
+            </div>
+          </label>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="applyFeeFilter()" style="flex:1;padding:11px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;font-family:Poppins,sans-serif;"><i class="bi bi-check-circle-fill"></i> Apply Filter</button>
+          <button onclick="closeFeeFilterPopup()" style="padding:11px 15px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-family:Poppins,sans-serif;">Cancel</button>
+        </div>
+      `;
+    }
+
+    function closeFeeFilterPopup() {
+      const m = document.getElementById('feeFilterModal');
+      const o = document.getElementById('feeFilterOverlay');
+      if (m) m.style.display = 'none';
+      if (o) o.style.display = 'none';
+    }
+
+    function applyFeeFilter() {
+      const sel = document.querySelector('input[name="feeFilterType"]:checked');
+      if (!sel) return;
+      currentFeeFilter = sel.value;
+      closeFeeFilterPopup();
+
+      // Filter icon + badge update
+      const iconBtn = document.getElementById('feeFilterIconBtn');
+      if (iconBtn) {
+        iconBtn.innerHTML = `<i class="bi bi-funnel${currentFeeFilter !== 'none' ? '-fill' : ''}"></i>`;
+        iconBtn.style.color = currentFeeFilter !== 'none' ? '#dc3545' : '#667eea';
+      }
+      const badge = document.getElementById('feeActiveFilterBadge');
+      if (badge) {
+        badge.style.display = currentFeeFilter !== 'none' ? 'flex' : 'none';
+        const lbl = badge.querySelector('.filter-label');
+        if (lbl) lbl.textContent = currentFeeFilter === 'fee_wise' ? 'Fee Wise' : 'Dues Wise';
+      }
+
+      applyFeeFilterToDOM();
+    }
+
+    function clearFeeFilter() {
+      currentFeeFilter = 'none';
+      const iconBtn = document.getElementById('feeFilterIconBtn');
+      if (iconBtn) { iconBtn.innerHTML = '<i class="bi bi-funnel"></i>'; iconBtn.style.color = '#667eea'; }
+      const badge = document.getElementById('feeActiveFilterBadge');
+      if (badge) badge.style.display = 'none';
+      applyFeeFilterToDOM();
+    }
+
+    function applyFeeFilterToDOM() {
+      const table = document.getElementById('feeReportTable');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      const rows = Array.from(tbody.querySelectorAll('tr[data-uid]'));
+
+      if (currentFeeFilter === 'none') {
+        // Original order restore, sab dikho
+        feeReportStudents.forEach(s => {
+          const r = tbody.querySelector('tr[data-uid="' + s.uid + '"]');
+          if (r) { r.style.display = ''; tbody.appendChild(r); }
+        });
+      } else if (currentFeeFilter === 'fee_wise') {
+        // Sirf monthly fee set wale dikho
+        rows.forEach(row => {
+          const mf = (loadedFees[row.dataset.uid] && loadedFees[row.dataset.uid].monthlyFee) || 0;
+          row.style.display = mf > 0 ? '' : 'none';
+        });
+      } else if (currentFeeFilter === 'dues_wise') {
+        // Dues ke hisaab se sort (sabse jayada upar)
+        rows.sort((a, b) => {
+          const aRaw = (loadedFees[a.dataset.uid] && loadedFees[a.dataset.uid].raw != null) ? loadedFees[a.dataset.uid].raw : -1;
+          const bRaw = (loadedFees[b.dataset.uid] && loadedFees[b.dataset.uid].raw != null) ? loadedFees[b.dataset.uid].raw : -1;
+          return bRaw - aRaw;
+        });
+        rows.forEach(row => { row.style.display = ''; tbody.appendChild(row); });
+      }
+
+      updateFeeRowSrNo();
+      updateFeeVisibleCount();
+    }
+
+    function updateFeeRowSrNo() {
+      const table = document.getElementById('feeReportTable');
+      if (!table) return;
+      Array.from(table.querySelectorAll('tbody tr[data-uid]'))
+        .filter(r => r.style.display !== 'none')
+        .forEach((r, i) => { const td = r.querySelector('td:first-child'); if (td) td.textContent = i + 1; });
+    }
+
+    function updateFeeVisibleCount() {
+      const table = document.getElementById('feeReportTable');
+      if (!table) return;
+      const count = Array.from(table.querySelectorAll('tbody tr[data-uid]')).filter(r => r.style.display !== 'none').length;
+      const el = document.getElementById('feeVisibleCount');
+      if (el) el.textContent = count;
     }
     // ==================== NEW PAYMENT DATEWISE LOGIC ====================
     function generateFeePaymentReport() {
@@ -11566,68 +11815,54 @@
         .getStudentLedgerFullData(uid);
     }
     function printFeeLedger(uid) {
-      const student = feeReportStudents.find(s => s.uid === uid);
-      if (!student) return showMessage('Student Not Found Locally.', 'error');
-
       showSpinner(true);
-
       google.script.run
-        .withSuccessHandler(photoMap => {
-          
-          student.photoUrl = photoMap[uid] || 'https://placehold.co/150x200?text=No+Photo';
-          
-          // 2. QR URL set karein (Agar sheet me qrCode hai, nahi toh dynamically generate karein)
-          if (student.qrCode) {
-             student.qrUrl = student.qrCode;
-          } else {
-             const qrData = JSON.stringify({
-               id: student.uid, 
-               name: student.name, 
-               fatherName: student.fatherName, 
-               class: student.class
-             });
-             student.qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&size=300`;
-          }
-
-          google.script.run
-            .withSuccessHandler(settings => {
-              const sName = settings.name || 'MY ORGANISATION';
-              const sAdd = settings.address || '';
-              const sPhone = settings.phone || '';
-              const addressPhoneText = (sAdd || sPhone) ? `${sAdd}${sAdd && sPhone ? ' | ' : ''}${sPhone ? 'PHONE: ' + sPhone : ''}` : '';
-
-              google.script.run
-                .withSuccessHandler(res => {
-                  showSpinner(false);
-                  const response = JSON.parse(res);
-                  if (!response.success) return showMessage(response.error, 'error');
-
-                  const feeData = response.data[uid] || {};
-                  
-                  // HTML generate aur print karne ke liye call
-                  generateFeeLedgerHTML(student, feeData, addressPhoneText, sName);
-                })
-                .withFailureHandler(err => {
-                  showSpinner(false);
-                  showMessage('Error Fetching Fee Data: ' + err, 'error');
-                })
-                .getBulkFeeNoticeData([uid]);
-            })
-            .withFailureHandler(err => {
-              showSpinner(false);
-              showMessage('Error Fetching School Settings: ' + err, 'error');
-            })
-            .getSchoolDetailsFromA3();
-
+        .withSuccessHandler(function(res) {
+          showSpinner(false);
+          const parsed = JSON.parse(res);
+          if (!parsed.success) return showMessage(parsed.message || 'Error Loading Ledger', 'error');
+          const sName = parsed.settings.name || 'MY ORGANISATION';
+          const sAdd  = parsed.settings.address || '';
+          const sPhone = parsed.settings.phone || '';
+          const addressPhoneText = (sAdd || sPhone) ? `${sAdd}${sAdd && sPhone ? ' | ' : ''}${sPhone ? 'PHONE: ' + sPhone : ''}` : '';
+          generateFeeLedgerHTML(parsed.student, parsed.feeData, addressPhoneText, sName);
         })
-        .withFailureHandler(err => {
-           showSpinner(false);
-           showMessage('Error Fetching Photos: ' + err, 'error');
+        .withFailureHandler(function(err) {
+          showSpinner(false);
+          showMessage('Error: ' + err, 'error');
         })
-        .getPhotoMap();
+        .getStudentLedgerFullData(uid);
     }
+    function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
+      // ── PRE-PROCESS: Summary totals + Column S breakdown detect ───────────
+      const SKIP_KEYS_UPPER = ['UID','NAME','CLASS','FATHER_NAME','PHONE','DOB'];
+      let summaryTotalAdded = 0, summaryTotalCollected = 0;
+      let summaryTotalDiscount = 0, summaryTotalFine = 0;
+      let monthlyFeeBreakdown = null, monthlyFeeBreakdownKey = null;
 
-function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
+      for (const key in feeData) {
+        if (SKIP_KEYS_UPPER.includes(key.toUpperCase())) continue;
+        const jsonLogs = extractJSONs(feeData[key]);
+        if (!jsonLogs.length) continue;
+        const first = jsonLogs[0];
+        if (!first || typeof first !== 'object') continue;
+        // Column S breakdown detect karo ("School Fee" property hogi)
+        if ('School Fee' in first) { monthlyFeeBreakdown = first; monthlyFeeBreakdownKey = key; continue; }
+        // ITEMS skip karo (category property hogi)
+        if (first.category) continue;
+        // Transaction logs se totals sum karo
+        jsonLogs.forEach(log => {
+          if (!log.action) return;
+          if (log.action === 'Add Fee') {
+            summaryTotalAdded += (parseFloat(log.amount) || 0);
+            summaryTotalFine  += (parseFloat(log.lateFine) || 0);
+          } else {
+            summaryTotalCollected += (parseFloat(log.payAmount) || 0);
+            summaryTotalDiscount  += (parseFloat(log.discount)  || 0);
+          }
+        });
+      }
+
       let html = `
         <html><head><title>Fee Ledger - ${student.name}</title>
         <style>
@@ -11640,168 +11875,195 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
           .school-info { text-align: center; flex: 1; }
           .school-name { margin: 0; font-size: 26px; color: #b30000; text-transform: uppercase; font-weight: bold; }
           .school-address { margin: 3px 0 5px 0; font-size: 13px; color: #444; font-weight: 600; }
-          .report-title { background: #b30000; color: #fff; padding: 6px 15px; font-size: 16px; font-weight: bold; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 15px;}
-          .student-section { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px; }
+          .report-title { background: #b30000; color: #fff; padding: 6px 15px; font-size: 16px; font-weight: bold; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 12px; }
+          .student-section { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 15px; }
           .student-details { width: 75%; }
           .student-details table { width: 100%; font-size: 14px; border-collapse: collapse; }
           .student-details td { padding: 4px 0; }
           .student-details td:first-child { font-weight: 600; width: 140px; color: #444; }
           .student-photo { width: 95px; height: 115px; border: 2px solid #000; object-fit: cover; border-radius: 4px; }
-          .ledger-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; margin-bottom: 20px; }
+          .summary-row { display: flex; gap: 8px; margin-bottom: 13px; }
+          .s-box { flex: 1; border: 1.5px solid #e0e0e0; border-radius: 7px; padding: 9px 8px; text-align: center; background: #fafafa; }
+          .s-val { font-size: 14px; font-weight: 700; }
+          .s-lbl { font-size: 9px; color: #777; text-transform: uppercase; font-weight: 600; margin-top: 3px; letter-spacing: 0.3px; }
+          .ledger-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; margin-bottom: 16px; }
           .ledger-table th, .ledger-table td { border: 1px solid #333; padding: 8px; }
           .ledger-table th { background: #f0f0f0; font-weight: 600; text-transform: uppercase; }
           .ledger-table td { color: #222; }
-          .month-header { text-align: left; background: #e9ecef; font-weight: bold; font-size: 14px; padding: 10px; border: 1px solid #333; border-bottom: none;}
-          .signatures { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; text-align: center; margin-top: 40px;}
+          .month-header { text-align: left; background: #e9ecef; font-weight: bold; font-size: 14px; padding: 10px; border: 1px solid #333; border-bottom: none; }
+          .signatures { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; text-align: center; margin-top: 40px; }
           .sig-box { border-top: 1px dashed #000; width: 30%; padding-top: 5px; color: #444; }
           @media print { body { background: #fff; -webkit-print-color-adjust: exact; } .page { border: none; margin:0; padding:0; width: 100%; box-shadow: none; } }
         </style>
         </head><body>
           <div class="page">
-            <img src="${typeof SCHOOL_LOGO_URL !== 'undefined' ? SCHOOL_LOGO_URL : ''}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; opacity: 0.08; z-index: 0; pointer-events: none;" alt="Watermark">
-            
+            <img src="${typeof SCHOOL_LOGO_URL !== 'undefined' ? SCHOOL_LOGO_URL : ''}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;opacity:0.08;z-index:0;pointer-events:none;" alt="">
             <div class="header">
-                <img class="logo" src="${typeof SCHOOL_LOGO_URL !== 'undefined' ? SCHOOL_LOGO_URL : ''}" alt="Logo">
-                <div class="school-info">
-                    <h2 class="school-name">${sName}</h2>
-                    <p class="school-address">${addressPhoneText}</p>
-                </div>
+              <img class="logo" src="${typeof SCHOOL_LOGO_URL !== 'undefined' ? SCHOOL_LOGO_URL : ''}" alt="Logo">
+              <div class="school-info">
+                <h2 class="school-name">${sName}</h2>
+                <p class="school-address">${addressPhoneText}</p>
+              </div>
             </div>
-            
-            <div style="text-align:center;">
-                <div class="report-title">TRANSITION HISTORY</div>
-            </div>
-            
+            <div style="text-align:center;"><div class="report-title">TRANSACTION HISTORY</div></div>
             <div class="student-section">
-                <div class="student-details">
-                    <table>
-                        <tr><td>Student Name</td><td>: <strong>${student.name.toUpperCase()}</strong></td></tr>
-                        <tr><td>Father's Name</td><td>: ${student.fatherName.toUpperCase()}</td></tr>
-                        <tr><td>Class & Section</td><td>: <strong>${student.class}</strong> ${student.section && student.section !== 'N/A' ? ' (' + student.section + ')' : ''}</td></tr>
-                        <tr><td>Phone Number</td><td>: ${student.phone || 'N/A'}</td></tr>
-                        <tr><td>Student UID</td><td>: ${student.uid}</td></tr>
-                    </table>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <img class="student-photo" src="${student.qrUrl}" alt="QR Code" style="object-fit: contain; padding: 2px; border: 1px solid #333;">
-                    <img class="student-photo" src="${student.photoUrl}" alt="Photo" onerror="this.onerror=null; this.src='${typeof FALLBACK_PHOTO_URL !== 'undefined' ? FALLBACK_PHOTO_URL : ''}';">
-                </div>
+              <div class="student-details">
+                <table>
+                  <tr><td>Student Name</td><td>: <strong>${student.name.toUpperCase()}</strong></td></tr>
+                  <tr><td>Father's Name</td><td>: ${student.fatherName.toUpperCase()}</td></tr>
+                  <tr><td>Class & Section</td><td>: <strong>${student.class}</strong> ${student.section && student.section !== 'N/A' ? '(' + student.section + ')' : ''}</td></tr>
+                  <tr><td>Phone Number</td><td>: ${student.phone || 'N/A'}</td></tr>
+                  <tr><td>Student UID</td><td>: ${student.uid}</td></tr>
+                </table>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <img class="student-photo" src="${student.qrUrl}" alt="QR" style="object-fit:contain;padding:2px;border:1px solid #333;">
+                <img class="student-photo" src="${student.photoUrl}" alt="Photo" onerror="this.onerror=null;this.src='${typeof FALLBACK_PHOTO_URL !== 'undefined' ? FALLBACK_PHOTO_URL : ''}';">
+              </div>
             </div>
+
+            <!-- 4 SUMMARY BOXES -->
+            <div class="summary-row">
+              <div class="s-box">
+                <div class="s-val" style="color:#28a745;">&#8377;${summaryTotalCollected.toLocaleString('en-IN')}</div>
+                <div class="s-lbl">Total Collected</div>
+              </div>
+              <div class="s-box">
+                <div class="s-val" style="color:#dc3545;">&#8377;${summaryTotalAdded.toLocaleString('en-IN')}</div>
+                <div class="s-lbl">Total Added Fee</div>
+              </div>
+              <div class="s-box">
+                <div class="s-val" style="color:#1976d2;">&#8377;${summaryTotalDiscount.toLocaleString('en-IN')}</div>
+                <div class="s-lbl">Total Discount</div>
+              </div>
+              <div class="s-box">
+                <div class="s-val" style="color:#e67e22;">&#8377;${summaryTotalFine.toLocaleString('en-IN')}</div>
+                <div class="s-lbl">Total Fine</div>
+              </div>
+            </div>
+
+            <!-- FEE BREAKDOWN TABLE (Column S) -->
+            ${monthlyFeeBreakdown ? `
+            <div class="month-header" style="background:#e3f2fd;color:#1565c0;border-color:#90caf9;">&#128196; FEE BREAKDOWN — CURRENT MONTHLY FEE</div>
+            <table class="ledger-table" style="border-color:#90caf9;margin-bottom:14px;">
+              <thead>
+                <tr style="background:#bbdefb;">
+                  <th style="border-color:#90caf9;">School Fee</th>
+                  <th style="border-color:#90caf9;">Vehicle Fee</th>
+                  <th style="border-color:#90caf9;">Electricity Fee</th>
+                  <th style="border-color:#90caf9;">Lab & Smart Class Fee</th>
+                  <th style="border-color:#90caf9;">Other Fee</th>
+                  <th style="border-color:#90caf9;color:#1976d2;">Discount</th>
+                  <th style="border-color:#90caf9;background:#b3e5fc;">Net Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>&#8377;${parseFloat(monthlyFeeBreakdown['School Fee']||0).toLocaleString('en-IN')}</td>
+                  <td>&#8377;${parseFloat(monthlyFeeBreakdown['Vehicle Fee']||0).toLocaleString('en-IN')}</td>
+                  <td>&#8377;${parseFloat(monthlyFeeBreakdown['Electricity Fee']||0).toLocaleString('en-IN')}</td>
+                  <td>&#8377;${parseFloat(monthlyFeeBreakdown['Lab & Smart Class Fee']||0).toLocaleString('en-IN')}</td>
+                  <td>&#8377;${parseFloat(monthlyFeeBreakdown['Other Fee']||0).toLocaleString('en-IN')}</td>
+                  <td style="color:#1976d2;font-weight:bold;">- &#8377;${parseFloat(monthlyFeeBreakdown['Discount']||0).toLocaleString('en-IN')}</td>
+                  <td><strong>&#8377;${(
+                    ['School Fee','Vehicle Fee','Electricity Fee','Lab & Smart Class Fee','Other Fee']
+                      .reduce((a,k) => a + parseFloat(monthlyFeeBreakdown[k]||0), 0)
+                    - parseFloat(monthlyFeeBreakdown['Discount']||0)
+                  ).toLocaleString('en-IN')}</strong></td>
+                </tr>
+              </tbody>
+            </table>` : ''}
       `;
 
       let hasHistory = false;
 
       for (const key in feeData) {
-        if (['UID', 'NAME', 'CLASS', 'FATHER_NAME', 'PHONE', 'DOB'].includes(key.toUpperCase())) continue;
-        
+        if (SKIP_KEYS_UPPER.includes(key.toUpperCase())) continue;
+        if (monthlyFeeBreakdownKey && key === monthlyFeeBreakdownKey) continue; // Column S skip
+
         const cellVal = feeData[key];
         const jsonLogs = extractJSONs(cellVal);
-        
+
         if (jsonLogs.length > 0) {
           hasHistory = true;
 
-          // --- NAYA CODE: ITEMS (INVENTORY) KE LIYE ALAG TABLE ---
           if (key.toUpperCase() === 'ITEMS') {
             html += `
-              <div class="month-header" style="background:#fff3cd; color:#856404; border-color:#ffeeba;">INVENTORY ITEMS PROVIDED / PENDING</div>
+              <div class="month-header" style="background:#fff3cd;color:#856404;border-color:#ffeeba;">INVENTORY ITEMS PROVIDED / PENDING</div>
               <table class="ledger-table" style="border-color:#ffeeba;">
                 <thead style="background:#ffeeba;">
                   <tr>
-                    <th width="20%">Date Added</th>
-                    <th width="25%">Category/Sub</th>
-                    <th width="30%">Item Name</th>
-                    <th width="10%">Price</th>
-                    <th width="15%">Status</th>
+                    <th width="20%">Date Added</th><th width="25%">Category/Sub</th>
+                    <th width="30%">Item Name</th><th width="10%">Price</th><th width="15%">Status</th>
                   </tr>
-                </thead>
-                <tbody>
-            `;
+                </thead><tbody>`;
             jsonLogs.forEach(item => {
-                // Agar normal fee action galti se issme aa jaye to ignore ho jayegi
-                if(!item.category) return;
-                
-            let dateStr = item.dateAdded ? new Date(item.dateAdded).toLocaleDateString('en-IN') : 'N/A';
-            let statusColor = item.status === 'Provided' ? '#28a745' : '#dc3545';
-            let statusCell = `<span style="color: ${statusColor}; font-weight: bold;">${item.status}</span>`;
-            if (item.status === 'Provided' && item.dateProvided) {
-                let providedDate = new Date(item.dateProvided).toLocaleDateString('en-IN');
-                statusCell += `<br><small style="color:#555; font-weight:normal;">${providedDate}</small>`;
-            }
-            if (item.status === 'Refunded' && item.dateRefunded) {
-                let refundedDate = new Date(item.dateRefunded).toLocaleDateString('en-IN');
-                statusCell += `<br><small style="color:#555; font-weight:normal;">${refundedDate}</small>`;
-            }
-            html += `<tr>
+              if (!item.category) return;
+              let dateStr = item.dateAdded ? new Date(item.dateAdded).toLocaleDateString('en-IN') : 'N/A';
+              let statusColor = item.status === 'Provided' ? '#28a745' : '#dc3545';
+              let statusCell = `<span style="color:${statusColor};font-weight:bold;">${item.status}</span>`;
+              if (item.status === 'Provided' && item.dateProvided) statusCell += `<br><small>${new Date(item.dateProvided).toLocaleDateString('en-IN')}</small>`;
+              if (item.status === 'Refunded' && item.dateRefunded) statusCell += `<br><small>${new Date(item.dateRefunded).toLocaleDateString('en-IN')}</small>`;
+              html += `<tr>
                 <td>${dateStr}</td>
-                <td><strong style="color:#555;">${item.category}</strong> <br> <small style="color:#888;">${item.subCategory}</small></td>
+                <td><strong style="color:#555;">${item.category}</strong><br><small style="color:#888;">${item.subCategory}</small></td>
                 <td style="font-weight:bold;">${item.item}</td>
-                <td>₹${item.price}</td>
+                <td>&#8377;${item.price}</td>
                 <td>${statusCell}</td>
-            </tr>`;
+              </tr>`;
             });
             html += `</tbody></table>`;
-            continue; // Normal fee loop skip kar dega items ke liye
+            continue;
           }
-          // ---------------------------------------------------------
-          
+
           html += `
             <div class="month-header">MONTH: ${key.toUpperCase()}</div>
             <table class="ledger-table">
-              <thead>
-                <tr>
-                  <th width="20%">Date & Time</th>
-                  <th width="15%">Action</th>
-                  <th width="20%">Fee Type</th>
-                  <th width="20%">Details</th>
-                  <th width="15%">Change</th>
-                  <th width="10%">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-          `;
-          
-          jsonLogs.forEach(log => { 
-            let actionColor = log.action === 'Add Fee' ? '#dc3545' : '#28a745'; 
-            
-            let discountShow = (log.discount && log.discount > 0) ? ` + Dis: ₹${log.discount}` : ''; 
-            let lateFineShow = (log.lateFine && log.lateFine > 0) ? ` + Fine: ₹${log.lateFine}` : ''; 
-            
-            let changeVal = log.action === 'Add Fee' ? `+ ₹${log.amount}${lateFineShow}` : `- ₹${log.payAmount}${discountShow}`; 
-            let balance = log.action === 'Add Fee' ? `₹${log.totalAmount}` : `₹${log.remainingAmount}`; 
-            
-            let modeOrDetail = log.action === 'Add Fee' ? `Added As Dues` : `${log.mode}`; 
-            if (log.discount && log.discount > 0) modeOrDetail += ` <span style="color:#1976d2; font-weight:bold;">(₹${log.discount} Discount)</span>`; 
-            if (log.lateFine && log.lateFine > 0) modeOrDetail += ` <span style="color:#dc3545; font-weight:bold;">(₹${log.lateFine} Fine)</span>`; 
-            
-            // Date sirf DD/MM/YYYY format mein dikhao (time hatao)
+              <thead><tr>
+                <th width="18%">Date</th><th width="14%">Action</th>
+                <th width="18%">Fee Type</th><th width="22%">Details</th>
+                <th width="16%">Change</th><th width="12%">Balance</th>
+              </tr></thead><tbody>`;
+
+          jsonLogs.forEach(log => {
+            if (!log.action) return;
+            let actionColor = log.action === 'Add Fee' ? '#dc3545' : '#28a745';
+            let discountShow = (log.discount && log.discount > 0) ? ` + Dis: &#8377;${log.discount}` : '';
+            let lateFineShow = (log.lateFine && log.lateFine > 0) ? ` + Fine: &#8377;${log.lateFine}` : '';
+            let changeVal = log.action === 'Add Fee' ? `+ &#8377;${log.amount}${lateFineShow}` : `- &#8377;${log.payAmount}${discountShow}`;
+            let balance = log.action === 'Add Fee' ? `&#8377;${log.totalAmount}` : `&#8377;${log.remainingAmount}`;
+            let modeOrDetail = log.action === 'Add Fee' ? 'Added As Dues' : `${log.mode || ''}`;
+            if (log.discount && log.discount > 0) modeOrDetail += ` <span style="color:#1976d2;font-weight:bold;">(&#8377;${log.discount} Discount)</span>`;
+            if (log.lateFine && log.lateFine > 0) modeOrDetail += ` <span style="color:#dc3545;font-weight:bold;">(&#8377;${log.lateFine} Fine)</span>`;
             let displayDate = 'N/A';
             if (log.date) {
-                // Format: "MM/DD/YYYY, HH:MM:SS AM/PM" → DD/MM/YYYY
-                const parts = log.date.split(',')[0].trim().split('/');
-                if (parts.length === 3) {
-                    displayDate = parts[1] + '/' + parts[0] + '/' + parts[2]; // DD/MM/YYYY
-                } else {
-                    displayDate = log.date;
-                }
+              const parts = log.date.split(',')[0].trim().split('/');
+              displayDate = (parts.length === 3) ? `${parts[1]}/${parts[0]}/${parts[2]}` : log.date;
             }
-            html += ` <tr> <td>${displayDate}</td> <td style="color: ${actionColor}; font-weight: bold;">${log.action}</td> <td>${log.type || 'N/A'}</td> <td>${modeOrDetail}</td> <td style="color: ${actionColor}; font-weight: bold;">${changeVal}</td> <td><strong>${balance}</strong></td> </tr> `;
+            html += `<tr>
+              <td>${displayDate}</td>
+              <td style="color:${actionColor};font-weight:bold;">${log.action}</td>
+              <td>${log.type || 'N/A'}</td>
+              <td>${modeOrDetail}</td>
+              <td style="color:${actionColor};font-weight:bold;">${changeVal}</td>
+              <td><strong>${balance}</strong></td>
+            </tr>`;
           });
           html += `</tbody></table>`;
         }
       }
 
       if (!hasHistory) {
-        html += `<div style="text-align:center; padding: 40px; color:#777; font-style: italic; border: 1px dashed #ccc; background:#f9f9f9;">No Transition History Found For This Student.</div>`;
+        html += `<div style="text-align:center;padding:40px;color:#777;font-style:italic;border:1px dashed #ccc;background:#f9f9f9;">No Transaction History Found For This Student.</div>`;
       }
 
       html += `
             <div class="signatures">
-                <div class="sig-box">Accountant</div>
-                <div class="sig-box">Principal</div>
+              <div class="sig-box">Accountant</div>
+              <div class="sig-box">Principal</div>
             </div>
           </div>
-        </body></html>
-      `;
+        </body></html>`;
 
       openPrintWindow(html, 'view');
     }
@@ -12074,66 +12336,129 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
       const url = `https://wa.me/91${phone}?text=${message}`;
       window.open(url, '_blank');
     }
+    // ✅ NEW: 0=Green, badhte-badhte 10000+=Red
+    function getFeeColorGradient(amount) {
+      amount = Number(amount) || 0;
+      if (amount <= 0) return '#28a745';
+      if (amount >= 10000) return '#dc3545';
+
+      const stops = [
+        { pct: 0,    color: [40, 167, 69] },
+        { pct: 0.33, color: [255, 193, 7] },
+        { pct: 0.66, color: [253, 126, 20] },
+        { pct: 1,    color: [220, 53, 69] }
+      ];
+      const ratio = amount / 10000;
+      let a = stops[0], b = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (ratio >= stops[i].pct && ratio <= stops[i+1].pct) { a = stops[i]; b = stops[i+1]; break; }
+      }
+      const localRatio = (ratio - a.pct) / ((b.pct - a.pct) || 1);
+      const r = Math.round(a.color[0] + (b.color[0]-a.color[0]) * localRatio);
+      const g = Math.round(a.color[1] + (b.color[1]-a.color[1]) * localRatio);
+      const bl = Math.round(a.color[2] + (b.color[2]-a.color[2]) * localRatio);
+      return `rgb(${r}, ${g}, ${bl})`;
+    }
+
+    // ✅ NEW: Dues-months circle + up/down arrow render
+    function renderFeeStatusIcons(uid) {
+      const info = loadedFees[uid];
+      const box = document.getElementById('feeStatusIcons-' + uid);
+      if (!info || !box) return;
+      const raw = Number(info.raw) || 0;
+      const monthlyFee = Number(info.monthlyFee) || 0;
+      const duesMonths = monthlyFee > 0 ? Math.ceil(raw / monthlyFee) : 0;
+
+      let html = '';
+      if (duesMonths > 0) {
+        html += `<span title="${duesMonths} Month(s) Fee Due" style="display:inline-flex; align-items:center; justify-content:center; width:1.2rem; height:1.2rem; border-radius:50%; border:1px solid #dc3545; background:transparent; color:#dc3545; font-size:0.7rem; font-weight:700; margin-left:6px; box-sizing:border-box;">${duesMonths}</span>`;
+      }
+      if (info.prevFee !== null && info.prevFee !== undefined) {
+        const prev = Number(info.prevFee) || 0;
+        if (raw > prev) {
+          html += `<i class="bi bi-arrow-up-circle" style="color:#dc3545; font-size:1.19rem; margin-left:6px;" title="Fee Greater Than Last Month"></i>`;
+        } else if (raw < prev) {
+          html += `<i class="bi bi-arrow-down-circle" style="color:#28a745; font-size:1.19rem; margin-left:6px;" title="Fee Less Than Last Month"></i>`;
+        }
+      }
+      box.innerHTML = html;
+    }    
     function loadStudentFee(uid, retryCount = 0) {
       // UI Loading State on Retry
-      if(retryCount > 0) {
-          const feeDiv = document.getElementById('fee-' + uid);
-          if(feeDiv) {
-              feeDiv.innerHTML = '<span style="color: #f39c12; font-size: 0.8rem;"><i class="bi bi-arrow-repeat spin"></i> Retrying...</span>';
-          }
+      if (retryCount > 0) {
+        const feeDiv = document.getElementById('fee-' + uid);
+        if (feeDiv) {
+          feeDiv.innerHTML = '<span style="color: #f39c12; font-size: 0.8rem;"><i class="bi bi-arrow-repeat spin"></i> Retrying...</span>';
+        }
       }
-
       google.script.run
         .withSuccessHandler((res) => {
           const r = JSON.parse(res);
           const feeDiv = document.getElementById('fee-' + uid);
           if (!feeDiv) return;
-          
+
+          let amount = 0, monthlyFeeNum = 0, prevFeeNum = null, monthCol = null;
+
           if (r.success) {
-            let amount = 0;
-            if(r.fee) {
+            if (r.fee) {
               let match = r.fee.toString().match(/^([\d.]+)/);
-              if(match) amount = Number(match[1]);
+              if (match) amount = Number(match[1]);
             }
-            const monthCol = r.monthColumn || null;
-            if (amount && Number(amount) > 0) {
-              feeDiv.textContent = '₹' + amount;
-              feeDiv.style.color = '#dc3545';
-              loadedFees[uid] = { display: '₹' + amount, raw: amount, column: monthCol };
-            } else {
-              feeDiv.textContent = '₹0 (Paid)';
-              feeDiv.style.color = '#28a745';
-              loadedFees[uid] = { display: '₹0 (Paid)', raw: 0, column: monthCol };
+            monthCol = r.monthColumn || null;
+            monthlyFeeNum = Number(r.monthlyFee) || 0;
+            if (r.prevFee !== undefined && r.prevFee !== null && r.prevFee !== '') {
+              let pmatch = r.prevFee.toString().match(/^([\d.]+)/);
+              prevFeeNum = pmatch ? Number(pmatch[1]) : 0;
             }
-            // Monthly fee label update (Column S)
+
+            feeDiv.textContent = amount > 0 ? '₹' + amount : '₹0 (Paid)';
+            feeDiv.style.color = getFeeColorGradient(amount);
+
+            loadedFees[uid] = { display: feeDiv.textContent, raw: amount, column: monthCol, monthlyFee: monthlyFeeNum, prevFee: prevFeeNum };
+            // Agar fee_wise filter active hai to is row ki visibility update karo
+            if (currentFeeFilter === 'fee_wise') {
+              const fRow = document.querySelector('#feeReportTable tr[data-uid="' + uid + '"]');
+              if (fRow) { fRow.style.display = monthlyFeeNum > 0 ? '' : 'none'; updateFeeRowSrNo(); updateFeeVisibleCount(); }
+            }
             if (r.monthlyFee !== undefined) {
               const mfAmt = document.getElementById('monthfee-amt-' + uid);
               if (mfAmt) mfAmt.textContent = r.monthlyFee ? '₹' + r.monthlyFee : '—';
             }
+            const depositDateTd = document.getElementById('depositDate-' + uid);
+            if (depositDateTd) depositDateTd.textContent = r.depositDate || '—';
           } else {
-            feeDiv.textContent = '₹0 (Paid)';
-            feeDiv.style.color = '#28a745';
-            loadedFees[uid] = { display: '₹0 (Paid)', raw: 0, column: null };
+            // ✅ NEW: Record Not Found par turant N/A mat dikhao, 3 baar retry karo
+            if (retryCount < 3) {
+              console.log(`Fee Record Not Found For ${uid}, Attempt ${retryCount + 1}. Retrying...`);
+              setTimeout(() => {
+                loadStudentFee(uid, retryCount + 1);
+              }, 1500);
+              return; // 3 attempts poore hone tak neeche wala code skip
+            }
+            feeDiv.textContent = 'N/A';
+            feeDiv.style.color = '#dc3545';
+            feeDiv.title = r.message || 'Fee Record Not Found';
+            loadedFees[uid] = { display: 'N/A', raw: null, column: null, monthlyFee: 0, prevFee: null };
           }
           updateTotalFeeDisplay();
+          renderFeeStatusIcons(uid);
         })
         .withFailureHandler((err) => {
-          if (retryCount < 3) { // 3 Baar koshish karega
+          if (retryCount < 3) {
             console.log(`Failed loading fee for ${uid}, Attempt ${retryCount + 1}. Retrying...`);
             setTimeout(() => {
-                loadStudentFee(uid, retryCount + 1); // 1.5 second baad wapas fetch karega
-            }, 1500); 
+              loadStudentFee(uid, retryCount + 1);
+            }, 1500);
           } else {
-              // Agar 3 baar me bhi nai aaya tab actual error show hoga
-              const feeDiv = document.getElementById('fee-' + uid);
-              if (feeDiv) {
-                feeDiv.textContent = 'Failed';
-                feeDiv.style.color = '#dc3545';
-                feeDiv.style.fontWeight = 'bold';
-                feeDiv.title = err; // Error hover karne par dikhega
-              }
-              loadedFees[uid] = { display: 'Failed', raw: null, column: null };
-              updateTotalFeeDisplay();
+            const feeDiv = document.getElementById('fee-' + uid);
+            if (feeDiv) {
+              feeDiv.textContent = 'Failed';
+              feeDiv.style.color = '#dc3545';
+              feeDiv.style.fontWeight = 'bold';
+              feeDiv.title = err;
+            }
+            loadedFees[uid] = { display: 'Failed', raw: null, column: null };
+            updateTotalFeeDisplay();
           }
         })
         .loadCurrentMonthFee(uid, currentMonthName);
@@ -12200,17 +12525,17 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
         })
         .saveFeeData(uid, monthColumn, amountNum);
     }
-    // ==================== FEE INFO DIALOG (i icon — Monthly Fee + Note) ====================
+    // ==================== FEE INFO DIALOG (i icon — Monthly Fee Breakdown + Note) ====================
     function openFeeInfoDialog(uid, name) {
       showSpinner(true);
-      let monthlyFeeVal = '', noteVal = '';
 
       google.script.run
         .withSuccessHandler(function(res) {
           showSpinner(false);
-          const r = JSON.parse(res);
-          monthlyFeeVal = r.monthlyFee || '';
-          noteVal = r.note || '';
+          const r       = JSON.parse(res);
+          const totalFee = r.monthlyFee || 0;
+          const noteVal  = r.note       || '';
+          const bd       = r.breakdown  || {};
 
           let modal = document.getElementById('feeInfoModal');
           if (!modal) {
@@ -12219,29 +12544,68 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
             modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
             document.body.appendChild(modal);
           }
+          const feeFields = [
+            { id:'fiSchoolFee',  label:'School Fee',         icon:'bi-mortarboard',       key:'School Fee',            special: false },
+            { id:'fiVehicleFee', label:'Vehicle Fee',        icon:'bi-bus-front',         key:'Vehicle Fee',           special: false },
+            { id:'fiElecFee',    label:'Electricity Fee',    icon:'bi-lightning-charge',  key:'Electricity Fee',       special: false },
+            { id:'fiLabFee',     label:'Lab & Smart Class',  icon:'bi-pc-display',        key:'Lab & Smart Class Fee', special: false },
+            { id:'fiOtherFee',   label:'Other Fee',          icon:'bi bi-collection',     key:'Other Fee',             special: false },
+            { id:'fiDiscount',   label:'Discount',           icon:'bi-tag',               key:'Discount',              special: true  }
+          ];
+          // 4 items → 2x2 grid | 5th (Other Fee) → spans both columns
+          const gridItems = feeFields.map((f, idx) => `
+            <div style="${idx === 4 ? 'border-top:1px dashed #dee2e6;padding-top:8px;margin-top:2px;' : ''}${f.special ? 'border-top:1px dashed #f5c6cb;padding-top:8px;margin-top:2px;' : ''}">
+              <label style="font-size:0.72rem;color:${f.special ? '#dc3545' : '#667eea'};font-weight:700;display:block;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <i class="bi ${f.icon}"></i> ${f.label}
+              </label>
+              <input type="number" id="${f.id}" value="${bd[f.key] || 0}" min="0"
+                oninput="updateFeeInfoTotal()"
+                style="width:100%;border:2px solid ${f.special ? '#f5c6cb' : '#dee2e6'};border-radius:8px;padding:8px 10px;font-size:0.95rem;box-sizing:border-box;${f.special ? 'background:#fff8f8;color:#dc3545;' : ''}">
+            </div>
+          `).join('');
 
           modal.innerHTML = `
-            <div style="background:white;border-radius:15px;padding:25px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-              <h4 style="margin:0 0 5px 0;color:#667eea;"><i class="bi bi-info-circle"></i> Fee Info - ${name}</h4>
-              <p style="margin:0 0 15px 0;color:#666;font-size:0.85rem;">UID: ${uid}</p>
-              <div id="feeInfoOldNotes" style="background:#f8f9fa;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:0.78rem;color:#555;max-height:110px;overflow-y:auto;${noteVal ? '' : 'display:none;'}border:1px solid #dee2e6;white-space:normal;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="background:white;border-radius:15px;padding:20px;max-width:480px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:92vh;overflow-y:auto;box-sizing:border-box;">
+
+              <h4 style="margin:0 0 2px 0;color:#667eea;font-size:1rem;"><i class="bi bi-info-circle"></i> Fee Info — ${name}</h4>
+              <p style="margin:0 0 10px 0;color:#888;font-size:0.78rem;">UID: ${uid}</p>
+
+              <div id="feeInfoOldNotes" style="background:#f8f9fa;border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:0.76rem;color:#555;max-height:80px;overflow-y:auto;${noteVal ? '' : 'display:none;'}border:1px solid #dee2e6;white-space:normal;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
                   <strong>Old Notes:</strong>
-                  <span title="Clear All Notes" onclick="clearFeeInfoNotes('${uid}')" style="cursor:pointer;color:#dc3545;font-size:1rem;line-height:1;"><i class="bi bi-trash"></i></span>
+                  <span onclick="clearFeeInfoNotes('${uid}')" style="cursor:pointer;color:#dc3545;font-size:0.95rem;"><i class="bi bi-trash"></i></span>
                 </div>
-                ${noteVal ? noteVal.replace(/\n/g, '<br>') : ''}
+                ${noteVal ? noteVal.replace(/\n/g,'<br>') : ''}
               </div>
-              <div style="margin-bottom:12px;">
-                <label style="font-size:0.85rem;color:#555;font-weight:600;display:block;margin-bottom:5px;"><i class="bi bi-currency-rupee"></i> Monthly Fee</label>
+
+              <!-- Fee Breakdown: 2-column grid — mobile pe perfect fit -->
+              <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;margin-bottom:10px;border:1px solid #c5cff5;">
+                <div style="font-size:0.75rem;color:#667eea;font-weight:700;margin-bottom:8px;"><i class="bi bi-bar-chart-steps"></i> Fee Breakdown</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  ${gridItems}
+                </div>
+              </div>
+
+              <!-- Total Monthly Fee — auto sum, read-only -->
+              <div style="background:#e8f5e9;border-radius:10px;padding:8px 12px;margin-bottom:10px;border:1px solid #c3e6cb;">
+                <label style="font-size:0.75rem;color:#2e7d32;font-weight:700;display:block;margin-bottom:3px;"><i class="bi bi-currency-rupee"></i> Total Monthly Fee</label>
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <input type="number" id="feeInfoMonthlyInput" value="${monthlyFeeVal}" min="0" placeholder="Enter Monthly Fee" style="flex:1;border:2px solid #dee2e6;border-radius:8px;padding:8px 10px;font-size:0.95rem;box-sizing:border-box;">
-                  <span style="font-size:0.85rem;color:#666;">/Month</span>
+                  <input type="number" id="feeInfoMonthlyInput" value="${totalFee}" min="0" readonly
+                    style="flex:1;border:2px solid #a5d6a7;border-radius:8px;padding:8px 10px;font-size:0.95rem;font-weight:700;color:#2e7d32;box-sizing:border-box;background:#f1f8e9;cursor:default;">
+                  <span style="font-size:0.82rem;color:#388e3c;font-weight:600;white-space:nowrap;">/Mon</span>
                 </div>
               </div>
-              <textarea id="feeInfoNoteInput" rows="4" style="width:100%;border:2px solid #dee2e6;border-radius:8px;padding:10px;font-size:0.95rem;resize:vertical;font-family:inherit;" placeholder="Write Note Here"></textarea>
-              <div style="display:flex;gap:10px;margin-top:15px;align-items:center;justify-content:flex-end;">
-                <button onclick="document.getElementById('feeInfoModal').style.display='none'" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.95rem;">Cancel</button>
-                <button onclick="saveFeeInfoDialog('${uid}')" style="padding:10px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.95rem;"><i class="bi bi-save"></i> Save</button>
+
+              <!-- Note -->
+              <textarea id="feeInfoNoteInput" rows="3"
+                style="width:100%;border:2px solid #dee2e6;border-radius:8px;padding:8px 10px;font-size:0.9rem;resize:vertical;font-family:inherit;box-sizing:border-box;margin-bottom:10px;"
+                placeholder="Write Note Here"></textarea>
+
+              <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button onclick="document.getElementById('feeInfoModal').style.display='none'"
+                  style="padding:8px 18px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;">Cancel</button>
+                <button onclick="saveFeeInfoDialog('${uid}')"
+                  style="padding:8px 18px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;"><i class="bi bi-save"></i> Save</button>
               </div>
             </div>
           `;
@@ -12252,14 +12616,31 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
         .getStudentMonthlyFee(uid);
     }
 
-    function saveFeeInfoDialog(uid) {
-      const monthlyFee = document.getElementById('feeInfoMonthlyInput').value.trim();
-      const noteText   = document.getElementById('feeInfoNoteInput').value.trim();
+    function updateFeeInfoTotal() {
+      const ids = ['fiSchoolFee','fiVehicleFee','fiElecFee','fiLabFee','fiOtherFee'];
+      let total = 0;
+      ids.forEach(id => { total += parseFloat(document.getElementById(id)?.value) || 0; });
+      const discount = parseFloat(document.getElementById('fiDiscount')?.value) || 0;
+      const el = document.getElementById('feeInfoMonthlyInput');
+      if (el) el.value = Math.max(0, total - discount);
+    }
 
-      if (!monthlyFee && !noteText) {
-        showMessage('Fill Monthly Fee Or Note!', 'error');
+    function saveFeeInfoDialog(uid) {
+      const schoolFee      = parseFloat(document.getElementById('fiSchoolFee').value)  || 0;
+      const vehicleFee     = parseFloat(document.getElementById('fiVehicleFee').value) || 0;
+      const electricityFee = parseFloat(document.getElementById('fiElecFee').value)    || 0;
+      const labFee         = parseFloat(document.getElementById('fiLabFee').value)     || 0;
+      const otherFee       = parseFloat(document.getElementById('fiOtherFee').value)   || 0;
+      const discount       = parseFloat(document.getElementById('fiDiscount').value)   || 0;
+      const total          = Math.max(0, schoolFee + vehicleFee + electricityFee + labFee + otherFee - discount);
+      const noteText       = document.getElementById('feeInfoNoteInput').value.trim();
+
+      if (total <= 0 && !noteText) {
+        showMessage('Please Write At Least A Fee Amount Or Note!', 'error');
         return;
       }
+
+      const feeBreakdown = { schoolFee, vehicleFee, electricityFee, labFee, otherFee, discount, total };
 
       showSpinner(true);
       google.script.run
@@ -12268,9 +12649,9 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
           const r = JSON.parse(res);
           if (r.success) {
             document.getElementById('feeInfoModal').style.display = 'none';
-            if (monthlyFee) {
+            if (total > 0) {
               const lbl = document.getElementById('monthfee-amt-' + uid);
-              if (lbl) lbl.textContent = '₹' + monthlyFee;
+              if (lbl) lbl.textContent = '₹' + total;
             }
             showMessage('Saved Successfully!', 'success');
           } else {
@@ -12278,7 +12659,7 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
           }
         })
         .withFailureHandler(function(e) { showSpinner(false); showMessage('Error: ' + e, 'error'); })
-        .saveStudentMonthlyFee(uid, monthlyFee || null, noteText || null);
+        .saveStudentMonthlyFee(uid, feeBreakdown, noteText || null);
     }
 
     function clearFeeInfoNotes(uid) {
@@ -13669,90 +14050,152 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
             .withFailureHandler(err => { showSpinner(false); playSound('error'); showMessage('Error: ' + err, 'error'); })
             .saveHwTimetable(rowNum, ttJson);
     }
+    // ==================== HW SYLLABUS (BULK - ALL SUBJECTS OF CLASS) ====================
+    function hwSylEsc(v) {
+        return String(v === undefined || v === null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-    // ==================== HW SYLLABUS FUNCTIONS ====================
-    function loadHwSyllabusTypes() {
-        const rowNum = document.getElementById('hwEditRowRow').value;
-        if (!rowNum) return showMessage('Please Select A Subject Row First Using The Pencil Icon', 'error');
+    function openHwSyllabusBulk() {
+        if (!currentHwClass) return showMessage('Please Select A Class First', 'error');
+        document.getElementById('hwSyllabusBulkClass').innerText = currentHwClass;
         showSpinner(true);
         google.script.run
             .withSuccessHandler(res => {
                 showSpinner(false);
                 const data = JSON.parse(res);
                 if (data.success) {
-                    // ✅ NEW: Total Chapters bhi load karo Col E se
-                    if (data.totalChapters !== '' && data.totalChapters !== null && data.totalChapters !== undefined) {
-                        document.getElementById('hwTotalChapters').value = data.totalChapters;
-                    }
-                    renderHwSyllabusInputs(data.types, data.existing, data.threshold, data.totalChapters);
+                    renderHwSyllabusBulk(data.subjects, data.types, data.threshold);
+                    document.getElementById('hwSyllabusBulkModal').style.display = 'flex';
+                } else {
+                    playSound('error'); showMessage(data.message, 'error');
                 }
-                else { playSound('error'); showMessage(data.message, 'error'); }
             })
             .withFailureHandler(err => { showSpinner(false); playSound('error'); showMessage('Error: ' + err, 'error'); })
-            .getHwSyllabusData(rowNum);
+            .getHwSyllabusBulkData(currentHwClass);
     }
 
-    function renderHwSyllabusInputs(types, existing, threshold, totalChapters) {
-        const container = document.getElementById('hwSyllabusTypeInputs');
-        const thresholdInput = document.getElementById('hwSyllabusThreshold');
-        if (threshold !== undefined && threshold !== null && threshold !== '') {
-            thresholdInput.value = threshold;
+    function closeHwSyllabusBulk() {
+        document.getElementById('hwSyllabusBulkModal').style.display = 'none';
+    }
+
+    function renderHwSyllabusBulk(subjects, types, threshold) {
+        const wrap = document.getElementById('hwSyllabusBulkWrap');
+        if (!subjects || subjects.length === 0) {
+            wrap.innerHTML = '<p style="color:#666; text-align:center; padding:20px;">No Subjects Found For This Class.</p>';
+            return;
         }
-
-        // ✅ NEW: Threshold chapters calculate karo
-        // Formula: totalChapters * threshold% / 100, round to nearest integer
-        const totalCh = parseFloat(totalChapters) || 0;
-        const threshPct = parseFloat(threshold) || 0;
-        const thresholdChapters = (totalCh > 0 && threshPct > 0)
-            ? Math.round(totalCh * threshPct / 100)
-            : 0;
-
-        let html = '';
-        types.forEach(type => {
-            const val = (existing && existing[type] !== undefined) ? existing[type] : '';
-
-            // ✅ NEW: Label mein (3) style bracket show karo, aur max set karo
-            const bracketLabel = thresholdChapters > 0
-                ? `${type} <span style="color:#e74c3c; font-size:0.75rem;">(${thresholdChapters})</span>`
-                : type;
-
-            const maxAttr = thresholdChapters > 0 ? `max="${thresholdChapters}"` : '';
-            const titleAttr = thresholdChapters > 0
-                ? `title="Max allowed: ${thresholdChapters} chapters"`
-                : '';
-
-            html += `<div style="flex: 1 1 calc(50% - 4px); min-width: 130px;">
-                <label style="font-size:0.78rem; color:#555; font-weight:600; display:block; margin-bottom:3px;">${bracketLabel}</label>
-                <input type="number" class="text-input syllabus-type-input" data-type="${type}"
-                    value="${val}" placeholder="0"
-                    style="width:100%; padding:7px 8px; font-size:0.9rem;" 
-                    min="0" ${maxAttr} ${titleAttr}
-                    oninput="this.value = Math.min(Math.max(this.value, 0), ${thresholdChapters > 0 ? thresholdChapters : 99999})">
-            </div>`;
+        const thStyle = 'position:sticky; top:0; z-index:2; background:#fff; border-bottom:2px solid #667eea; padding:10px 8px; font-weight:bold; color:#333; text-align:center; white-space:nowrap;';
+        let html = '<table id="hwSyllabusBulkTable" style="border-collapse:separate; border-spacing:0; min-width:100%;">';
+        html += '<thead><tr>';
+        html += '<th style="' + thStyle + ' text-align:left; min-width:120px;">Subject</th>';
+        html += '<th style="' + thStyle + ' color:#6c757d;">Total Chapter</th>';
+        html += '<th style="' + thStyle + ' color:#e74c3c;">Threshold %</th>';
+        types.forEach(t => {
+            html += '<th style="' + thStyle + ' color:#667eea;">' + hwSylEsc(t) + '</th>';
         });
-        container.innerHTML = html;
-        document.getElementById('hwSyllabusTypesSection').style.display = 'block';
+        html += '</tr></thead><tbody>';
+
+        const tdBase = 'padding:8px; border-bottom:1px solid #eee; text-align:center; background:#fff;';
+        const inpStyle = 'width:90px; padding:7px 8px; font-size:0.9rem; text-align:center;';
+
+        subjects.forEach((sub, idx) => {
+            const ex = sub.existing || {};
+            html += '<tr data-row="' + sub.row + '">';
+            
+            // CHANGE 2: <td> se 'position:sticky', 'left:0', 'z-index:1' aur 'box-shadow' hata diya. 'min-width' 120px kar diya.
+            html += '<td style="' + tdBase + ' text-align:left; min-width:120px;">'
+                +  '<div style="font-weight:600; color:#333; font-size:1rem;">' + (idx + 1) + '. ' + hwSylEsc(sub.subject) + '</div>'
+                +  '<div style="font-size:0.8rem; color:#6c757d; margin-top:2px;">' + hwSylEsc(sub.teacher) + '</div></td>';
+                
+            html += '<td style="' + tdBase + '"><input type="number" class="text-input hw-syl-total" min="0" placeholder="0" value="' + hwSylEsc(sub.totalChapters) + '" style="' + inpStyle + '" oninput="hwSylTotalChanged(this)"></td>';
+            html += '<td style="' + tdBase + '"><input type="number" class="text-input hw-syl-thr" min="1" max="100" placeholder="%" value="' + hwSylEsc(threshold) + '" style="' + inpStyle + '" oninput="hwSylThresholdChanged(this)"></td>';
+            types.forEach(t => {
+                const v = (ex[t] !== undefined && ex[t] !== null) ? ex[t] : '';
+                html += '<td style="' + tdBase + '"><input type="number" class="text-input hw-syl-type" data-type="' + hwSylEsc(t) + '" min="0" placeholder="0" value="' + hwSylEsc(v) + '" style="' + inpStyle + '" oninput="hwSylTypeChanged(this)"></td>';
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+        wrap.querySelectorAll('tbody tr').forEach(tr => hwSylRefreshRow(tr));
+    }
+    // Max allowed chapters for a row = round(total * threshold% / 100)  (0 = no limit)
+    function hwSylRowMax(tr) {
+        const total = parseFloat(tr.querySelector('.hw-syl-total').value) || 0;
+        const thr = parseFloat(tr.querySelector('.hw-syl-thr').value) || 0;
+        return (total > 0 && thr > 0) ? Math.round(total * thr / 100) : 0;
     }
 
-    function saveHwSyllabus() {
-        const rowNum = document.getElementById('hwEditRowRow').value;
-        if (!rowNum) return showMessage('Please Select A Subject Row First Using The Pencil Icon', 'error');
-        const totalChapters = document.getElementById('hwTotalChapters').value.trim();
-        const threshold = document.getElementById('hwSyllabusThreshold').value.trim();
-        const typeInputs = document.querySelectorAll('.syllabus-type-input');
-        if (typeInputs.length === 0) return showMessage('Please Load Types First', 'error');
-        const syllabusData = {};
-        typeInputs.forEach(inp => { syllabusData[inp.getAttribute('data-type')] = inp.value.trim(); });
+    function hwSylRefreshRow(tr) {
+        const max = hwSylRowMax(tr);
+        tr.querySelectorAll('.hw-syl-type').forEach(inp => {
+            if (max > 0) {
+                inp.max = max;
+                inp.placeholder = '0 / ' + max;
+                inp.title = 'Max allowed: ' + max + ' chapters';
+                if (inp.value !== '' && parseFloat(inp.value) > max) inp.value = max;
+            } else {
+                inp.removeAttribute('max');
+                inp.placeholder = '0';
+                inp.title = '';
+            }
+        });
+    }
+
+    function hwSylTotalChanged(inp) {
+        hwSylRefreshRow(inp.closest('tr'));
+    }
+
+    // Threshold is a single value stored in the sheet header, so keep every row in sync
+    function hwSylThresholdChanged(inp) {
+        let v = inp.value;
+        if (v !== '') {
+            v = Math.min(Math.max(parseFloat(v) || 0, 0), 100);
+            if (parseFloat(inp.value) > 100) inp.value = v;
+        }
+        document.querySelectorAll('#hwSyllabusBulkTable .hw-syl-thr').forEach(o => { if (o !== inp) o.value = inp.value; });
+        document.querySelectorAll('#hwSyllabusBulkTable tbody tr').forEach(tr => hwSylRefreshRow(tr));
+    }
+
+    function hwSylTypeChanged(inp) {
+        if (inp.value === '') return;
+        let v = parseFloat(inp.value);
+        if (isNaN(v) || v < 0) { inp.value = 0; return; }
+        const max = hwSylRowMax(inp.closest('tr'));
+        if (max > 0 && v > max) inp.value = max;
+    }
+
+    function saveHwSyllabusBulk() {
+        const rows = document.querySelectorAll('#hwSyllabusBulkTable tbody tr');
+        if (rows.length === 0) return showMessage('No Subjects To Save', 'error');
+        let threshold = '';
+        const payloadRows = [];
+        rows.forEach(tr => {
+            const thrVal = tr.querySelector('.hw-syl-thr').value.trim();
+            if (thrVal !== '' && threshold === '') threshold = thrVal;
+            const data = {};
+            tr.querySelectorAll('.hw-syl-type').forEach(inp => { data[inp.getAttribute('data-type')] = inp.value.trim(); });
+            payloadRows.push({
+                row: tr.getAttribute('data-row'),
+                totalChapters: tr.querySelector('.hw-syl-total').value.trim(),
+                data: data
+            });
+        });
         showSpinner(true);
         google.script.run
             .withSuccessHandler(res => {
                 showSpinner(false);
-                const data = JSON.parse(res);
-                if (data.success) { playSound('success'); showMessage('Syllabus Saved!', 'success'); }
-                else { playSound('error'); showMessage(data.message, 'error'); }
+                const r = JSON.parse(res);
+                if (r.success) {
+                    playSound('success'); showMessage(r.message, 'success');
+                    closeHwSyllabusBulk();
+                } else {
+                    playSound('error'); showMessage(r.message, 'error');
+                }
             })
             .withFailureHandler(err => { showSpinner(false); playSound('error'); showMessage('Error: ' + err, 'error'); })
-            .saveHwSyllabus(rowNum, totalChapters, threshold, JSON.stringify(syllabusData));
+            .saveHwSyllabusBulk(currentHwClass, JSON.stringify({ threshold: threshold, rows: payloadRows }));
     }
 
     function openHwSubjectSetup() {
@@ -13795,8 +14238,6 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
         // Reset hidden tracker & timetable/syllabus sections
         document.getElementById('hwEditRowRow').value = '';
         document.getElementById('hwTimetableSection').style.display = 'none';
-        document.getElementById('hwSyllabusSection').style.display = 'none';
-        document.getElementById('hwSyllabusTypesSection').style.display = 'none';
         document.getElementById('newHwSubject').value = '';
         document.getElementById('newHwTeacher').value = '';
     }
@@ -13844,18 +14285,12 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
             const label = ` ${srNo} ${subjectInput.value || 'Subject'}`;
             document.getElementById('hwTimetableSection').style.display = 'block';
             document.getElementById('hwTimetableRowLabel').textContent = label;
-            document.getElementById('hwSyllabusSection').style.display = 'block';
-            document.getElementById('hwSyllabusRowLabel').textContent = label;
             // Day buttons reset
             document.querySelectorAll('#hwDaySelector button').forEach(b => {
                 b.setAttribute('data-active','0'); b.style.background='#fff'; b.style.color='#28a745';
             });
             document.getElementById('hwStartTime').value = '';
             document.getElementById('hwEndTime').value = '';
-            document.getElementById('hwSyllabusTypesSection').style.display = 'none';
-            document.getElementById('hwSyllabusTypeInputs').innerHTML = '';
-            document.getElementById('hwTotalChapters').value = '';
-            document.getElementById('hwSyllabusThreshold').value = '';
 
             // Timetable section tak scroll karo
             setTimeout(() => {
@@ -13885,8 +14320,6 @@ function generateFeeLedgerHTML(student, feeData, addressPhoneText, sName) {
                         // Timetable/Syllabus sections aur tracker reset
                         document.getElementById('hwEditRowRow').value = '';
                         document.getElementById('hwTimetableSection').style.display = 'none';
-                        document.getElementById('hwSyllabusSection').style.display = 'none';
-                        document.getElementById('hwSyllabusTypesSection').style.display = 'none';
                     } else {
                         playSound('error'); showMessage(data.message, 'error');
                     }
@@ -14758,19 +15191,19 @@ function generateTeacherDatewiseReport() {
   const toDate = document.getElementById('teacherDateTo').value;
 
   if (!fromDate || !toDate) { return showMessage('Please Select Both Dates', 'error'); }
-  
+
   showSpinner(true);
-  
+
   if (fromDate === toDate) {
       google.script.run
         .withSuccessHandler(result => { showSpinner(false); if (result.success) displayTeacherDatewiseReport(result); else showMessage(result.message, 'error'); })
         .withFailureHandler(err => { showSpinner(false); showMessage('Error: ' + err, 'error'); })
-        .getTeacherDatewiseReport(fromDate);
+        .getTeacherCalendarSingleReport(fromDate);
   } else {
       google.script.run
         .withSuccessHandler(result => { showSpinner(false); if (result.success) displayTeacherDateRangeReport(result); else showMessage(result.message, 'error'); })
         .withFailureHandler(err => { showSpinner(false); showMessage('Error: ' + err, 'error'); })
-        .getTeacherDateRangeReport(fromDate, toDate);
+        .getTeacherCalendarRangeReport(fromDate, toDate);
   }
 }
 
@@ -15712,7 +16145,13 @@ function loadPinnedMarks(type, col) {
     function generateQuizReport(className) {
       showSpinner(true);
       document.getElementById('quizResultArea').innerHTML = '';
-      
+      // School ka Referral Code = School ID (localStorage se)
+      let schoolReferralCode = '';
+      try {
+        const _ud = JSON.parse(localStorage.getItem('userData') || '{}');
+        schoolReferralCode = (_ud.schoolId || _ud.loginId || '').toString().trim();
+      } catch(e) {}
+
       google.script.run
         .withSuccessHandler(result => {
           showSpinner(false);
@@ -15726,7 +16165,7 @@ function loadPinnedMarks(type, col) {
           showSpinner(false);
           showMessage('Error: ' + err, 'error');
         })
-        .getOnlineQuizReport(className);
+        .getOnlineQuizReport(className, schoolReferralCode);
     }
 
     function displayQuizReport(data) {
@@ -17786,7 +18225,7 @@ function generateDocEditHTML(students, type, sheetName, bgImageRaw, elements, is
             <td>${row.teacher || 'N/A'}</td>
             <td><strong>${row.subject}</strong>${row.class ? ` <span style="color:#888;font-size:0.78rem;font-weight:300;">(${row.class})</span>` : ''}</td>
             <td style="text-align:center;">${row.totalChapters}</td>
-            <td style="text-align:center;">${row.thresholdChapters.toFixed(1)}</td>
+            <td style="text-align:center;">${Math.round(row.thresholdChapters)}</td>
             ${typeCells}
             <td style="text-align:center;" class="${effClass}">${eff}%</td>
             <td style="text-align:center;" class="${rankClass}">#${row.classRank}</td>
@@ -17894,7 +18333,7 @@ function generateDocEditHTML(students, type, sheetName, bgImageRaw, elements, is
           subTeachers[r.subject].push(r.teacher);
       });
       // ── Build school-timetable grid HTML ──
-      const title = isAll ? 'All Classes — Routine' : `Class ${CLS_DISPLAY[classesInView[0]] || classesInView[0]} — Routine`;
+      const title = isAll ? 'All Classes - Routine' : `Class ${CLS_DISPLAY[classesInView[0]] || classesInView[0]} - Routine`;
 
       // Time header cells
       const timeHeaderCells = sortedTimes.map(t =>
@@ -18093,7 +18532,7 @@ function generateDocEditHTML(students, type, sheetName, bgImageRaw, elements, is
               // Feb & Mar = Revision
               cellContent = `<span style="color:#8e44ad; font-weight:700; font-size:0.75rem;">Revision</span>`;
             } else {
-              const chapters = total > 0 ? (total * pct / 100).toFixed(1) : '—';
+              const chapters = total > 0 ? Math.round(total * pct / 100) : '—';
               const chNum = parseFloat(chapters);
               let color = '#333';
               if (pct <= 30) color = '#e74c3c';
@@ -21256,16 +21695,16 @@ function deleteDocPreset() {
       if (isChecked) {
         if (!refundItems.includes(id)) {
           refundItems.push(id);
-          // Pay Amount mein price add karo
-          let current = parseFloat(document.getElementById('collectFeeAmount').value) || 0;
-          document.getElementById('collectFeeAmount').value = current + parseFloat(price);
+          // Discount mein price add karo
+          let current = parseFloat(document.getElementById('collectFeeDiscount').value) || 0;
+          document.getElementById('collectFeeDiscount').value = current + parseFloat(price);
           calculateCollectFeeRemaining();
         }
       } else {
         refundItems = refundItems.filter(i => i !== id);
-        // Pay Amount se price hatao
-        let current = parseFloat(document.getElementById('collectFeeAmount').value) || 0;
-        document.getElementById('collectFeeAmount').value = Math.max(0, current - parseFloat(price));
+        // Discount se price hatao
+        let current = parseFloat(document.getElementById('collectFeeDiscount').value) || 0;
+        document.getElementById('collectFeeDiscount').value = Math.max(0, current - parseFloat(price));
         calculateCollectFeeRemaining();
       }
       // Mode auto Refund set karo
@@ -21279,8 +21718,8 @@ function deleteDocPreset() {
       provided.forEach(p => {
         if (!refundItems.includes(p.id)) {
           refundItems.push(p.id);
-          let current = parseFloat(document.getElementById('collectFeeAmount').value) || 0;
-          document.getElementById('collectFeeAmount').value = current + parseFloat(p.price);
+          let current = parseFloat(document.getElementById('collectFeeDiscount').value) || 0;
+          document.getElementById('collectFeeDiscount').value = current + parseFloat(p.price);
           calculateCollectFeeRemaining();
         }
         const cb = document.querySelector(`#invRefundList input[value="${p.id}"]`);
@@ -22335,19 +22774,23 @@ function renderAdminExpenses(items) {
               <div style="flex: 1; min-width: 100px;"><label style="font-size: 0.7rem; color: #dc3545;">Exp Type</label><input type="text" class="text-input exp-type" value="${item.expType}"></div>
               <div style="flex: 0.8; min-width: 80px;"><label style="font-size: 0.7rem; color: #6c757d;">Total (Year)</label><input type="number" class="text-input exp-total" value="${item.total}" readonly style="background:#e9ecef; cursor:not-allowed;"></div>
               <div style="flex: 0.8; min-width: 80px;"><label style="font-size: 0.7rem; color: #6c757d;">Monthly</label><input type="number" class="text-input exp-monthly" value="${item.monthly}" readonly style="background:#e9ecef; cursor:not-allowed;"></div>
-              <div style="flex: 1; min-width: 90px;"><label style="font-size: 0.7rem; color: #dc3545;">Pay Type</label><input type="text" class="text-input exp-paytype" value="${item.payType}"></div>
+              <div style="flex: 1; min-width: 90px;"><label style="font-size: 0.7rem; color: #dc3545;">Expense ID</label><input type="text" class="text-input exp-paytype" value="${item.payType}"></div>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; background: white; padding: 10px; border-radius: 5px; border: 1px dashed #dc3545;">
               <div style="flex: 1; min-width: 100px;"><label style="font-size: 0.7rem; color: #555;">Fixed Expense</label><input type="text" class="text-input exp-fixed" value="${item.fixedExp}"></div>
               <div style="flex: 1; min-width: 100px;"><label style="font-size: 0.7rem; color: #555;">Entry Date</label><input type="date" class="text-input exp-date" value="${new Date().toISOString().slice(0,10)}"></div>
-              <div style="flex: 1; min-width: 120px; background: #e2ffeb; padding: 5px; border-radius: 5px;">
-                <label style="font-size: 0.7rem; color: #28a745; font-weight:bold;">+ Add New Exp Amt</label>
+              <div style="flex: 1; min-width: 100px; background: #e2ffeb; padding: 5px; border-radius: 5px;">
+                <label style="font-size: 0.7rem; color: #28a745; font-weight:bold;">+ Add Exp Amt</label>
                 <input type="number" class="text-input exp-add-new" placeholder="Amount" style="border-color:#28a745;">
               </div>
-              <div style="flex: 1; min-width: 120px; background: #e2ffeb; padding: 5px; border-radius: 5px;">
+              <div style="flex: 1; min-width: 100px; background: #e2ffeb; padding: 5px; border-radius: 5px;">
                 <label style="font-size: 0.7rem; color: #28a745; font-weight:bold;">+ Add Other Amt</label>
                 <input type="number" class="text-input exp-add-other" placeholder="Amount" style="border-color:#28a745;">
               </div>
+              <div style="flex: 1.5; min-width: 150px; background: #e8f0ff; padding: 5px; border-radius: 5px;">
+                <label style="font-size: 0.7rem; color: #007bff; font-weight:bold;">+ Add Note</label>
+                <input type="text" class="text-input exp-add-note" placeholder="Type A Note">
+              </div>              
               <div style="display: flex; gap: 5px; padding-top: 10px;">
                 <button class="btn btn-warning" style="padding: 8px 15px; font-size: 0.85rem;" onclick="updateSingleExpense(this, ${item.row})"><i class="bi bi-arrow-up-circle"></i> Update</button>
                 <button class="btn btn-danger" style="padding: 8px 15px; font-size: 0.85rem;" onclick="deleteExpenseItem(${item.row})"><i class="bi bi-trash"></i></button>
@@ -22409,7 +22852,8 @@ function updateSingleExpense(btn, rowNum) {
     fixed: rowDiv.querySelector('.exp-fixed').value,
     entryDate: rowDiv.querySelector('.exp-date').value,
     addAmt: rowDiv.querySelector('.exp-add-new').value,
-    addOtherAmt: rowDiv.querySelector('.exp-add-other').value
+    addOtherAmt: rowDiv.querySelector('.exp-add-other').value,
+    note: rowDiv.querySelector('.exp-add-note').value.trim()
   };
 
   showSpinner(true);
@@ -22434,9 +22878,12 @@ function saveBulkExpense() {
       type: row.querySelector('.exp-type').value,
       payType: row.querySelector('.exp-paytype').value,
       fixed: row.querySelector('.exp-fixed').value,
+      entryDate: row.querySelector('.exp-date').value,          // ← ADD
+      addAmt: row.querySelector('.exp-add-new').value,          // ← ADD
+      addOtherAmt: row.querySelector('.exp-add-other').value,   // ← ADD
+      note: row.querySelector('.exp-add-note').value.trim(),    // ← ADD
     });
   });
-
   if (edits.length === 0) return;
   showSpinner(true);
   google.script.run.withSuccessHandler(res => {
@@ -22455,30 +22902,30 @@ function deleteExpenseItem(rowNum) {
     if(JSON.parse(res).success) { showMessage('Deleted Successfully', 'success'); fetchAdminExpenses(); }
   }).adminDeleteExpenseItem(rowNum);
 }
-// ===== EXPENSE REPORT =====
 function showExpenseReportUI() {
   document.getElementById('feeReportSection').innerHTML = '';
   document.getElementById('fee-datewiseDateResult').innerHTML = '';
   document.getElementById('inventoryReportMainSection').style.display = 'none';
- 
   const section = document.getElementById('feeReportSection');
 
-  // ================= ADMIN ROLE CHECK (ACCESS DENIED LOGIC) =================
   const userDataStr = localStorage.getItem("userData");
   let userRole = '';
+  let myTeacherId = '';           // 👈 naam bhi clear kar diya
   if (userDataStr) {
-      try { userRole = JSON.parse(userDataStr).role; } catch(e) {}
+      try {
+        const ud = JSON.parse(userDataStr);
+        userRole    = ud.role;
+        myTeacherId = ud.uid || '';   // 👈 YAHI FIX HAI — loginId nahi, uid lena hai
+      } catch(e) {}
   }
-  
-  if (userRole !== 'PRO') {
+  if (userRole !== 'PRO' && userRole !== 'TEACHER') {
       section.innerHTML = `
-          <div style="text-align:center; padding:25px; color:#721c24; background:#f8d7da; border-radius:8px; font-weight:600; border: 1px solid #f5c6cb; margin-bottom:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-              <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i> 
-              Access Denied: Only Admin Can View Expenses Report.<br>
+          <div style="text-align:center; padding:25px; color:#721c24; background:#f8d7da; border-radius:8px; font-weight:600; border: 1px solid #f5c6cb; margin-bottom:15px;">
+              <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+              Access Denied: Only Admin/Teacher Can View Expenses Report.<br>
           </div>`;
-      return; // Code yahi ruk jayega, aage data fetch nahi hoga
+      return;
   }
-  // ==========================================================================
 
   showSpinner(true);
   google.script.run
@@ -22486,7 +22933,7 @@ function showExpenseReportUI() {
       showSpinner(false);
       const data = JSON.parse(res);
       if (!data.success) return showMessage(data.message, 'error');
-      renderExpenseReport(data.items);
+      renderExpenseReport(data.items, userRole, myTeacherId);   // 👈 uid pass hoga
     })
     .withFailureHandler(err => {
       showSpinner(false);
@@ -22494,32 +22941,90 @@ function showExpenseReportUI() {
     })
     .getExpenseReport();
 }
-
-function renderExpenseReport(items) {
+function openExpenseReportFiltered(filterType) {
+  // 1. Reports Tab par switch karo
+  switchTab('reports');
+  // 2. Sirf "Fee Reports" accordion open karo, baaki sab band
+  document.querySelectorAll('.accordion-content').forEach(acc => acc.classList.remove('active'));
+  document.querySelectorAll('.accordion-header').forEach(hdr => hdr.classList.remove('active'));
+  const feeAccContent = document.getElementById('fee-acc');
+  if (feeAccContent) {
+    feeAccContent.classList.add('active');
+    if (feeAccContent.previousElementSibling) feeAccContent.previousElementSibling.classList.add('active');
+  }
+  // 3. Filter type + date set karo
+  pendingExpenseDashboardFilter = { type: filterType, date: new Date(currentExpenseDate) };
+  // 4. Debit Report load karo (yeh already existing function hai)
+  showExpenseReportUI();
+  // 5. Smooth scroll taaki user ko section dikh jaye
+  setTimeout(() => {
+    if (feeAccContent) feeAccContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+function renderExpenseReport(items, userRole, myTeacherId) {
   const section = document.getElementById('feeReportSection');
   const months = ['APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC','JAN','FEB','MAR'];
- 
+  if (userRole === 'TEACHER') {
+    items = (items || []).filter(item => String(item.payType).trim() === String(myTeacherId).trim());
+  }
+  // 👇 NAYA BLOCK — Dashboard card se click hoke aaya filter yaha apply hoga
+  if (pendingExpenseDashboardFilter) {
+    const filterInfo = pendingExpenseDashboardFilter;
+    pendingExpenseDashboardFilter = null;   // ek baar use hote hi reset — taaki normal "Debit" click par filter na chipke
+
+    if (filterInfo.type === 'fixed') {
+      items = (items || []).filter(item => parseFloat(item.fixed) > 0);
+
+    } else if (filterInfo.type === 'monthly') {
+      items = (items || []).filter(item => parseFloat(item.monthly) > 0);
+
+    } else if (filterInfo.type === 'today') {
+      const d = filterInfo.date || new Date();
+      const targetStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+      items = (items || []).filter(item => {
+        if (!item.monthRaw) return false;
+        return Object.values(item.monthRaw).some(raw => {
+          try {
+            const arr = JSON.parse(raw);
+            return arr.some(e => e.date === targetStr);
+          } catch(e) { return false; }
+        });
+      });
+    }
+  }
   if (!items || items.length === 0) {
     section.innerHTML = '<div style="text-align:center;padding:30px;color:#666;">No Expense Data Found</div>';
     return;
   }
- 
   // ── Totals calculation ──
   let totalD = 0, totalE = 0, totalFixed = 0, totalOther = 0;
   const monthTotals = {};
   months.forEach(m => monthTotals[m] = 0);
-  const catCount = {}, subCount = {}, typeCount = {}, payCount = {};
- 
+  const catCount = {}, catMonthly = {}, catFixed = {}, subCount = {}, typeCount = {}, payCount = {};
+  // Month-wise per-category: catMonthAmounts[cat][month] = amount, catMonthCounts[cat][month] = count
+  const catMonthAmounts = {}, catMonthCounts = {};
+
   items.forEach(item => {
     totalD     += item.total;
     totalE     += item.monthly;
     totalFixed += item.fixed;
     totalOther += item.other;
     catCount[item.category]    = (catCount[item.category]    || 0) + 1;
+    catMonthly[item.category]  = (catMonthly[item.category]  || 0) + (item.monthly || 0);
+    catFixed[item.category]    = (catFixed[item.category]    || 0) + (item.fixed   || 0);
     subCount[item.subCategory] = (subCount[item.subCategory] || 0) + 1;
     typeCount[item.expType]    = (typeCount[item.expType]    || 0) + 1;
     payCount[item.payType]     = (payCount[item.payType]     || 0) + 1;
-    months.forEach(m => { monthTotals[m] += (item.monthSums[m] || 0); });
+    months.forEach(m => {
+      const mv = item.monthSums[m] || 0;
+      monthTotals[m] += mv;
+      if (mv > 0) {
+        if (!catMonthAmounts[item.category]) catMonthAmounts[item.category] = {};
+        if (!catMonthCounts[item.category])  catMonthCounts[item.category]  = {};
+        catMonthAmounts[item.category][m] = (catMonthAmounts[item.category][m] || 0) + mv;
+        catMonthCounts[item.category][m]  = (catMonthCounts[item.category][m]  || 0) + 1;
+      }
+    });
   });
  
   const fmt = v => v > 0 ? '₹' + v.toLocaleString('en-IN') : '—';
@@ -22529,7 +23034,7 @@ function renderExpenseReport(items) {
   items.forEach((item, idx) => {
     const mCells = months.map(m => {
       const v = item.monthSums[m] || 0;
-      return `<td style="text-align:right; white-space:nowrap;">${v > 0 ? '₹' + v.toLocaleString('en-IN') : '—'}</td>`;
+      return `<td style="text-align:center; white-space:nowrap;">${v > 0 ? '₹' + v.toLocaleString('en-IN') : '—'}</td>`;
     }).join('');
     rows += `
       <tr>
@@ -22537,9 +23042,11 @@ function renderExpenseReport(items) {
         <td><strong>${item.category}</strong></td>
         <td>${item.subCategory}</td>
         <td>${item.expType}</td>
-        <td style="text-align:right; font-weight:600; color:#c0392b;">
-          ${fmt(item.total)}
-          <span title="View Expense Ledger" style="cursor:pointer; margin-left:6px; color:#007bff; font-size:1rem; vertical-align:middle;" onclick='showExpenseLedger(${JSON.stringify(item)})'><i class="bi bi-clock-history"></i></span>
+        <td style="text-align:right; font-weight:600; color:#c0392b; white-space:nowrap;">
+          <div style="display:inline-flex; align-items:center; justify-content:flex-end;">
+            ${fmt(item.total)}
+            <span title="View Expense Ledger" style="cursor:pointer; margin-left:6px; color:#007bff; font-size:1rem; display:inline-flex; align-items:center;" onclick='showExpenseLedger(${JSON.stringify(item)})'><i class="bi bi-clock-history"></i></span>
+          </div>
         </td>
         <td style="text-align:right; color:#8e44ad;">${fmt(item.monthly)}</td>
         <td style="text-align:center;">${item.payType}</td>
@@ -22550,13 +23057,43 @@ function renderExpenseReport(items) {
   });
  
   // ── Footer totals row ──
+  const totalRev = window._globalTotalRevenue || 0; // Dashboard se Total Revenue
+
+  // 3-letter abbreviation helper
+  const abbr3 = name => (name || '???').substring(0, 3);
+
   const mFooter = months.map(m => {
     const v = monthTotals[m];
-    return `<td style="text-align:right; font-weight:700; font-size:0.8rem; background:#fff3cd; color:#856404;">${v > 0 ? '₹' + v.toLocaleString('en-IN') : '—'}</td>`;
+    const totalStr = v > 0 ? '₹' + v.toLocaleString('en-IN') : '—';
+
+    // Per-category breakdown for this month (3-letter abbr, very small text)
+    const catLines = Object.entries(catMonthAmounts)
+      .filter(([cat]) => (catMonthAmounts[cat][m] || 0) > 0)
+      .map(([cat]) => {
+        const amt  = catMonthAmounts[cat][m] || 0;
+        const cnt  = catMonthCounts[cat][m]  || 0;
+        const pct  = totalRev > 0 ? ((amt / totalRev) * 100).toFixed(0) : '0';
+        const ab   = abbr3(cat);
+        // Format: Tea×2(14.5k=12%)
+        const amtK = amt >= 1000 ? (amt / 1000).toFixed(amt % 1000 === 0 ? 0 : 1) + 'k' : amt;
+        return `<span style="display:block;color:#555;white-space:nowrap;">${ab}${cnt > 1 ? '×'+cnt : ''}(${amtK}=${pct}%)</span>`;
+      }).join('');
+
+    return `<td style="text-align:center; font-weight:700; font-size:0.8rem; background:#fff3cd; color:#856404; padding:4px 5px; vertical-align:top;">
+      <div style="white-space:nowrap;">${totalStr}</div>
+      ${catLines ? `<div style="font-size:0.62rem; font-weight:400; margin-top:3px; line-height:1.5; text-align:left;">${catLines}</div>` : ''}
+    </td>`;
   }).join('');
- 
-  // ── Category/Sub/Type/Pay footer text ──
-  const catSummary  = Object.entries(catCount).map(([k,v])  => `${k}×${v}`).join(', ');
+
+  // ── Category footer: Sirf Fixed + % of Total Revenue ──
+  const catSummary = Object.entries(catCount).map(([k, v]) => {
+    const fix = catFixed[k] || 0;
+    const pct = totalRev > 0 ? ((fix / totalRev) * 100).toFixed(1) : '0.0';
+    return fix > 0
+      ? `${k}×${v} (₹${fix.toLocaleString('en-IN')} Fix=${pct}%)`
+      : `${k}×${v}`;
+  }).join(',  ');
+
   const subSummary  = Object.entries(subCount).map(([k,v])  => `${k}×${v}`).join(', ');
   const typeSummary = Object.entries(typeCount).map(([k,v]) => `${k}×${v}`).join(', ');
   const paySummary  = Object.entries(payCount).map(([k,v])  => `${k}×${v}`).join(', ');
@@ -22608,8 +23145,8 @@ function renderExpenseReport(items) {
               <th>Expense Type</th>
               <th style="text-align:right;">Total</th>
               <th style="text-align:right;">Monthly</th>
-              <th style="text-align:center;">Pay Type</th>
-              ${months.map(m => `<th style="text-align:right;">${m}</th>`).join('')}
+              <th style="text-align:center;">Expense ID</th>
+              ${months.map(m => `<th style="text-align:center;">${m}</th>`).join('')}
               <th style="text-align:right;">Fixed</th>
               <th style="text-align:right;">Other</th>
             </tr>
@@ -22618,30 +23155,30 @@ function renderExpenseReport(items) {
             ${rows}
           </tbody>
           <tfoot>
-            <tr style="background:#f8f9fa; border-top:2px solid #dee2e6;">
-              <td colspan="2" style="font-size:0.7rem; color:#555; padding:6px 8px;">
+            <tr style="background:#f8f9fa; border-top:2px solid #dee2e6; font-size:0.62rem; vertical-align:top;">
+              <td colspan="2" style="padding:4px 5px; color:#555; text-align:left;">
                 <strong>Cat:</strong> ${catSummary}
               </td>
-              <td style="font-size:0.7rem; color:#555; padding:6px 8px;">
+              <td style="padding:4px 5px; color:#555; text-align:left;">
                 <strong>Sub:</strong> ${subSummary}
               </td>
-              <td style="font-size:0.7rem; color:#555; padding:6px 8px;">
+              <td style="padding:4px 5px; color:#555; text-align:left;">
                 <strong>Type:</strong> ${typeSummary}
               </td>
-              <td style="text-align:right; font-weight:700; color:#c0392b; padding:6px 8px;">
+              <td style="padding:4px 5px; font-weight:700; color:#c0392b; text-align:left;">
                 ${fmt(totalD)}
               </td>
-              <td style="text-align:right; font-weight:700; color:#8e44ad; padding:6px 8px;">
+              <td style="padding:4px 5px; font-weight:700; color:#8e44ad; text-align:left;">
                 ${fmt(totalE)}
               </td>
-              <td style="font-size:0.7rem; color:#555; padding:6px 8px;">
+              <td style="padding:4px 5px; color:#555; text-align:left;">
                 <strong>Pay:</strong> ${paySummary}
               </td>
               ${mFooter}
-              <td style="text-align:right; font-weight:700; color:#e74c3c; padding:6px 8px;">
+              <td style="padding:4px 5px; font-weight:700; color:#e74c3c; text-align:left;">
                 ${fmt(totalFixed)}
               </td>
-              <td style="text-align:right; font-weight:700; color:#e67e22; padding:6px 8px;">
+              <td style="padding:4px 5px; font-weight:700; color:#e67e22; text-align:left;">
                 ${fmt(totalOther)}
               </td>
             </tr>
@@ -22691,12 +23228,16 @@ function buildExpenseLedgerPrint(item) {
     entries.forEach(function(e, idx) {
       const amt = (parseFloat(e.expense) || 0) + (parseFloat(e.otherExpense) || 0);
       monthTotal += amt;
+      const noteText = e.note ? e.note : '';
       entryRows += `<tr>
         <td>${e.date || 'N/A'}</td>
         <td style="text-align:left;">${e.category || item.category}</td>
         <td style="text-align:left;">${e.expenseType || item.expType}</td>
         <td style="color:#28a745; font-weight:bold;">&#8377;${amt.toLocaleString('en-IN')}</td>
         <td><strong>&#8377;${amt.toLocaleString('en-IN')}</strong></td>
+        <td style="text-align:left; padding:4px 6px; vertical-align:middle;">
+          <div style="font-size:9.5px; line-height:1.25; max-height:2.5em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word;">${noteText}</div>
+        </td>
       </tr>`;
     });
     monthSections += `
@@ -22708,11 +23249,12 @@ function buildExpenseLedgerPrint(item) {
       <table class="ledger-table">
         <thead>
           <tr>
-            <th width="15%">Date</th>
-            <th width="30%">Category</th>
-            <th width="30%">Expense Type</th>
-            <th width="12%">Amount</th>
-            <th width="13%">Debit</th>
+            <th width="12%">Date</th>
+            <th width="22%">Category</th>
+            <th width="22%">Expense Type</th>
+            <th width="10%">Amount</th>
+            <th width="10%">Debit</th>
+            <th width="24%">Notes</th>
           </tr>
         </thead>
         <tbody>${entryRows}</tbody>
@@ -22731,9 +23273,11 @@ function buildExpenseLedgerPrint(item) {
   if (otherEntries.length > 0) {
     otherEntries.forEach(function(entry, idx) {
       const amt = parseFloat(entry.amount || 0);
+      // NAYA CODE: Description Me Ab Wahi Note Show Hoga Jo Add/Update Ke Time JSON Me Save Hua Tha
+      const noteText = entry.note ? entry.note : 'Other / Miscellaneous Expense';
       otherRows += `<tr>
         <td>${entry.date || 'N/A'}</td>
-        <td colspan="2" style="text-align:left; color:#856404;">Other / Miscellaneous Expense</td>
+        <td colspan="2" style="text-align:left; color:#856404;">${noteText}</td>
         <td style="color:#e67e22; font-weight:bold;">&#8377;${amt.toLocaleString('en-IN')}</td>
         <td><strong>&#8377;${(item.other||0).toLocaleString('en-IN')}</strong></td>
       </tr>`;
@@ -22826,7 +23370,7 @@ function buildExpenseLedgerPrint(item) {
           <div class="info-value">${item.expType}</div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Payment Type</div>
+          <div class="info-label">Expense ID</div>
           <div class="info-value">${item.payType}</div>
         </div>
       </div>
@@ -22942,7 +23486,7 @@ function initiateRazorpayPayment() {
         prefill: {
           name: studentName,
           contact: phone,
-          email: email || 'TeachGrowparent@gmail.com' // === (NEEDS EDIT) ===
+          email: email || 'Teachgrowparent@gmail.com' // === (NEEDS EDIT) ===
         },
         theme: {
           color: "#667eea"
